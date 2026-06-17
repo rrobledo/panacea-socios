@@ -7,10 +7,13 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/socios-api': {
+      '/socios': {
         target: BACKEND,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/socios-api/, ''),
+      },
+      '/ventas': {
+        target: BACKEND,
+        changeOrigin: true,
       },
     },
   },
