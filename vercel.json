@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/socios/:path*",
-      "destination": "https://panacea-socios-backend-o9awt0img-rauls-projects-d37b0ed8.vercel.app/socios/:path*"
+      "destination": "https://panacea-socios-backend.vercel.app/socios/:path*"
     },
     {
       "source": "/ventas/:path*",
-      "destination": "https://panacea-socios-backend-o9awt0img-rauls-projects-d37b0ed8.vercel.app/ventas/:path*"
+      "destination": "https://panacea-socios-backend.vercel.app/ventas/:path*"
     },
     {
       "source": "/(.*)",

@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const BACKEND = 'https://panacea-socios-backend-o9awt0img-rauls-projects-d37b0ed8.vercel.app'
+const BACKEND = 'https://panacea-socios-backend.vercel.app'
 
 export default defineConfig({
   plugins: [react()],
