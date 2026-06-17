@@ -10,7 +10,7 @@ export const buscarPorDni = (dni) =>
   client.get('/socios/', { params: { dni } });
 
 export const buscarPorNombre = (nombre) =>
-  client.get('/socios/', { params: { name: nombre } });
+  client.get('/socios/', { params: { name: nombre.normalize('NFD').replace(/[̀-ͯ]/g, '') } });
 
 export const registrarVenta = (data) =>
   client.post('/ventas/', data);
