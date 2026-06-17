@@ -71,7 +71,7 @@ export const VentasPage = () => {
     try {
       await registrarVenta({
         socio_id: selectedSocio.id,
-        fecha: new Date().toISOString(),
+        fecha: new Date().toISOString().slice(0, 10),
         lugar,
         importe: parseFloat(importe),
         detalles: [],
