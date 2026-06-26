@@ -18,7 +18,8 @@ export const OAuthCallback = () => {
     }
 
     if (token) {
-      handleOAuthCallback(token);
+      const socio_id = params.get('socio_id');
+      handleOAuthCallback(token, socio_id ? Number(socio_id) : null);
       navigate('/');
     } else {
       navigate('/login');

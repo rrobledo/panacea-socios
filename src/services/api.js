@@ -11,7 +11,7 @@ api.interceptors.response.use(
   res => res,
   err => {
     if (err.response?.status === 401) {
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem('panacea_auth');
       window.location.href = '/login';
     }
     return Promise.reject(err);

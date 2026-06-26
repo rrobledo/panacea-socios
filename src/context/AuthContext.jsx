@@ -2,12 +2,8 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 
 const AuthContext = createContext(null);
 
-const ALLOWED_EMAILS = [
-  'raul.osvaldo.robledo@gmail.com',
-  'panacea.bakeryglutenfree@gmail.com',
-];
-
-const STORAGE_KEY = 'panacea_user';
+const STORAGE_KEY = 'panacea_auth';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_API_URL;
 
 const decodeJwt = (token) => {
   try {
@@ -33,55 +29,56 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const handleGoogleCredential = useCallback(({ credential }) => {
-    setAuthError(null);
-    const payload = decodeJwt(credential);
-    if (!payload) {
-      setAuthError('Token de Google inválido.');
-      return;
-    }
-    const { email, name, picture } = payload;
-    if (!ALLOWED_EMAILS.includes(email)) {
-      setAuthError(`Acceso no autorizado para ${email}.`);
-      if (window.google) window.google.accounts.id.revoke(email, () => {});
-      return;
-    }
-    const u = { email, name, picture };
-    setUser(u);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+  const loginWithGoogle = useCallback(() => {
+    window.location.href = `${BACKEND_URL}/auth/google`;
   }, []);
 
-  const initGoogleSignIn = useCallback((element) => {
-    if (!window.google) return;
-    window.google.accounts.id.initialize({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-      callback: handleGoogleCredential,
-      auto_select: false,
+  const loginWithCredentials = useCallback(async (email, password) => {
+    setAuthError(null);
+    const body = new URLSearchParams({ username: email, password });
+    const res = await fetch(`${BACKEND_URL}/auth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
     });
-    window.google.accounts.id.renderButton(element, {
-      type: 'standard',
-      theme: 'outline',
-      size: 'large',
-      text: 'signin_with',
-      locale: 'es',
-      width: 320,
-    });
-  }, [handleGoogleCredential]);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.detail || 'Credenciales incorrectas.');
+    }
+    const { access_token, socio_id } = await res.json();
+    const payload = decodeJwt(access_token);
+    const auth = { access_token, socio_id, email: payload?.email ?? email };
+    setUser(auth);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
+  }, []);
+
+  const handleOAuthCallback = useCallback((token, socio_id) => {
+    setAuthError(null);
+    const payload = decodeJwt(token);
+    if (!payload) {
+      setAuthError('Token inválido.');
+      return;
+    }
+    const auth = {
+      access_token: token,
+      socio_id: socio_id ?? payload.sub,
+      email: payload.email,
+    };
+    setUser(auth);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
+  }, []);
 
   const logout = useCallback(() => {
-    if (window.google && user?.email) {
-      window.google.accounts.id.revoke(user.email, () => {});
-    }
     setUser(null);
     setAuthError(null);
     localStorage.removeItem(STORAGE_KEY);
-  }, [user]);
+  }, []);
 
   return (
     <AuthContext.Provider value={{
       user, loading, authError,
       isAuthenticated: !!user,
-      initGoogleSignIn, logout,
+      loginWithGoogle, loginWithCredentials, handleOAuthCallback, logout,
     }}>
       {children}
     </AuthContext.Provider>
