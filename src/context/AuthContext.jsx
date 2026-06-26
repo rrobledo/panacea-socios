@@ -30,7 +30,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const loginWithGoogle = useCallback(() => {
-    window.location.href = `${BACKEND_URL}/auth/google`;
+    const redirectUri = `${window.location.origin}/auth/callback`;
+    window.location.href = `${BACKEND_URL}/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
   }, []);
 
   const loginWithCredentials = useCallback(async (email, password) => {
