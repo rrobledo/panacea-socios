@@ -46,5 +46,5 @@ export const getVentaDetail = (ventaId) =>
 export const getRankingCompras = (params) =>
   client.get('/reportes/ranking_compras', { params });
 
-export const getCumpleanios = (fecha) =>
-  client.get('/reportes/cumpleanios', { params: { fecha } });
+export const getCumpleanios = (desde, hasta) =>
+  client.get('/reportes/cumpleanios', { params: { desde, hasta } });
