@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, ShoppingCart, AlertCircle, CheckCircle2, User } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { buscarPorDni, buscarPorNombre, registrarVenta } from '../services/sociosApi';
@@ -15,11 +16,14 @@ const formatFecha = (f) => {
 export const VentasPage = () => {
   const toast = useToast();
   const dniRef = useRef(null);
+  // Permite abrir la consulta con un socio ya buscado: /?dni=12345678
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [dniParam] = useState(() => searchParams.get('dni')?.trim() || '');
 
   const [searchMode, setSearchMode] = useState('dni');
-  const [dniValue, setDniValue]     = useState('');
+  const [dniValue, setDniValue]     = useState(dniParam);
   const [nameValue, setNameValue]   = useState('');
-  const [searching, setSearching]   = useState(false);
+  const [searching, setSearching]   = useState(!!dniParam);
   const [socios, setSocios]         = useState(null);
   const [selectedSocio, setSelectedSocio] = useState(null);
 
@@ -27,9 +31,20 @@ export const VentasPage = () => {
   const [importe, setImporte]   = useState('');
   const [registering, setRegistering] = useState(false);
 
-  useEffect(() => { dniRef.current?.focus(); }, []);
+  useEffect(() => {
+    if (!dniParam) { dniRef.current?.focus(); return; }
+    buscarPorDni(dniParam)
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
+        setSocios(data);
+        if (data.length > 0) setSelectedSocio(data[0]);
+      })
+      .catch(() => toast.error('Error al buscar el socio. Intentá de nuevo.'))
+      .finally(() => setSearching(false));
+  }, [dniParam]);
 
   const resetAll = useCallback(() => {
+    setSearchParams({}, { replace: true });
     setDniValue('');
     setNameValue('');
     setSocios(null);
@@ -38,7 +53,7 @@ export const VentasPage = () => {
     setImporte('');
     setSearchMode('dni');
     setTimeout(() => dniRef.current?.focus(), 50);
-  }, []);
+  }, [setSearchParams]);
 
   const handleSearch = async () => {
     const query = searchMode === 'dni' ? dniValue.trim() : nameValue.trim();

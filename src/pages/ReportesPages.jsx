@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '../context/ToastContext';
@@ -17,6 +18,7 @@ const hoy = () => format(new Date(), 'yyyy-MM-dd');
 // ── Socios por mayor compra ───────────────────────────────────────────────
 export const RankingComprasPage = () => {
   const toast = useToast();
+  const navigate = useNavigate();
   const [desde, setDesde]     = useState('');
   const [hasta, setHasta]     = useState('');
   const [rows, setRows]       = useState([]);
@@ -45,6 +47,10 @@ export const RankingComprasPage = () => {
       cell: ({ getValue }) => <span style={{ fontWeight: 600 }}>{fmtImporte(getValue())}</span>,
     },
     { accessorKey: 'ultima_compra', header: 'Última compra', size: 120, cell: ({ getValue }) => fmtFecha(getValue()) },
+    {
+      id: 'accion', header: '', size: 90,
+      cell: () => <span style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 500, whiteSpace: 'nowrap' }}>Ver socio →</span>,
+    },
   ], []);
 
   return (
@@ -52,7 +58,7 @@ export const RankingComprasPage = () => {
       <div className="page-header">
         <div>
           <div className="page-title">Socios por mayor compra</div>
-          <div className="page-subtitle">Total comprado por cada socio, de mayor a menor</div>
+          <div className="page-subtitle">Total comprado por cada socio, de mayor a menor. Hacé clic en un socio para ver sus datos y compras.</div>
         </div>
       </div>
 
@@ -87,6 +93,7 @@ export const RankingComprasPage = () => {
         loading={loading}
         rowKey="socio_id"
         emptyText="No hay compras registradas en el período."
+        onRowClick={(row) => navigate(`/?dni=${encodeURIComponent(row.dni)}`)}
       />
     </div>
   );
