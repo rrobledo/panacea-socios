@@ -42,3 +42,9 @@ export const getVentas = (socioId) =>
 
 export const getVentaDetail = (ventaId) =>
   client.get(`/ventas/${ventaId}/detail`);
+
+export const getRankingCompras = (params) =>
+  client.get('/reportes/ranking_compras', { params });
+
+export const getCumpleanios = (fecha) =>
+  client.get('/reportes/cumpleanios', { params: { fecha } });

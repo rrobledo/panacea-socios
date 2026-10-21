@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
-  ShoppingCart, LogOut, Menu, X, ChevronDown, Bell, User,
+  ShoppingCart, Trophy, Cake, LogOut, Menu, X, ChevronDown, Bell, User,
 } from 'lucide-react';
 import './layout.css';
 
 const NAV = [
   { label: 'Ventas', icon: ShoppingCart, to: '/' },
+  { label: 'Mayores compras', icon: Trophy, to: '/reportes/ranking-compras' },
+  { label: 'Cumpleaños', icon: Cake, to: '/reportes/cumpleanios' },
 ];
 
 const NavItem = ({ item, collapsed }) => {

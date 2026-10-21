@@ -5,6 +5,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { LoginPage } from './components/auth/LoginPage';
 import { OAuthCallback } from './components/auth/OAuthCallback';
 import { VentasPage } from './pages/VentasPage';
+import { RankingComprasPage, CumpleaniosPage } from './pages/ReportesPages';
 import { PageLoader } from './components/ui';
 import './index.css';
 
@@ -29,6 +30,8 @@ function App() {
                 <AppLayout>
                   <Routes>
                     <Route path="/" element={<VentasPage />} />
+                    <Route path="/reportes/ranking-compras" element={<RankingComprasPage />} />
+                    <Route path="/reportes/cumpleanios" element={<CumpleaniosPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </AppLayout>
