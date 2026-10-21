@@ -42,6 +42,3 @@ export const getVentas = (socioId) =>
 
 export const getVentaDetail = (ventaId) =>
   client.get(`/ventas/${ventaId}/detail`);
-
-export const getCreditos = (socioId) =>
-  client.get('/recompensas/creditos', { params: { socio_id: socioId } });

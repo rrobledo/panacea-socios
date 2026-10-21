@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Coins, ShoppingBag, ChevronRight } from 'lucide-react';
-import { getCreditos, getVentas, getVentaDetail } from '../../services/sociosApi';
+import { getVentas, getVentaDetail } from '../../services/sociosApi';
 import { InlineLoader, Modal } from '../ui';
 
 const fmtFecha = (v) => {
@@ -16,26 +16,9 @@ const fmtImporte = (v) => {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(v);
 };
 
-// ── Créditos ──────────────────────────────────────────────────────────────
-const CreditosCard = ({ socioId }) => {
-  const [creditos, setCreditos] = useState(null);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(false);
-
-  const fetchCreditos = useCallback(() => {
-    getCreditos(socioId)
-      .then(res => setCreditos(res.data))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, [socioId]);
-
-  const retryCreditos = () => { setLoading(true); setError(false); fetchCreditos(); };
-
-  useEffect(() => { fetchCreditos(); }, [fetchCreditos]);
-
-  const current    = creditos?.current ?? 0;
-  const nextReward = creditos?.nextReward ?? 0;
-  const pct = nextReward > 0 ? Math.min(100, Math.round((current / nextReward) * 100)) : 0;
+// ── Créditos: total comprado / registrado ─────────────────────────────────
+const CreditosCard = ({ ventas, loading, error, onRetry }) => {
+  const total = ventas.reduce((acc, v) => acc + Number(v.importe || 0), 0);
 
   return (
     <div className="card">
@@ -50,30 +33,25 @@ const CreditosCard = ({ socioId }) => {
         ) : error ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 14, color: 'var(--gray-500)' }}>No se pudieron cargar los créditos.</span>
-            <button className="btn btn-secondary btn-sm" onClick={retryCreditos}>Reintentar</button>
+            <button className="btn btn-secondary btn-sm" onClick={onRetry}>Reintentar</button>
           </div>
         ) : (
           <>
-            <div style={{ fontSize: 36, fontWeight: 700, color: 'var(--primary)', lineHeight: 1.1 }}>
-              {current}
+            <div style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 4 }}>Total comprado</div>
+            <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--primary)', lineHeight: 1.1 }}>
+              {fmtImporte(total)}
             </div>
-            {nextReward > 0 && (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--gray-500)', margin: '12px 0 6px' }}>
-                  <span>Progreso hacia la próxima recompensa</span>
-                  <span>{current} / {nextReward}</span>
-                </div>
-                <div style={{ height: 8, borderRadius: 4, background: 'var(--gray-100)', overflow: 'hidden' }}>
-                  <div style={{ width: `${pct}%`, height: '100%', background: 'var(--primary)', transition: 'width .4s' }} />
-                </div>
-              </>
-            )}
+            <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 8 }}>
+              {ventas.length} {ventas.length === 1 ? 'compra registrada' : 'compras registradas'}
+            </div>
           </>
         )}
       </div>
     </div>
   );
 };
+
+
 
 // ── Detalle de una compra ─────────────────────────────────────────────────
 const VentaDetalleModal = ({ venta, onClose }) => {
@@ -133,24 +111,8 @@ const VentaDetalleModal = ({ venta, onClose }) => {
 };
 
 // ── Historial de compras ──────────────────────────────────────────────────
-const ComprasCard = ({ socioId }) => {
-  const [ventas, setVentas]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(false);
+const ComprasCard = ({ ventas, loading, error, onRetry }) => {
   const [ventaSel, setVentaSel] = useState(null);
-
-  const fetchVentas = useCallback(() => {
-    getVentas(socioId)
-      .then(res => setVentas([...res.data].sort((a, b) => new Date(b.fecha) - new Date(a.fecha))))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, [socioId]);
-
-  const retryVentas = () => { setLoading(true); setError(false); fetchVentas(); };
-
-  useEffect(() => { fetchVentas(); }, [fetchVentas]);
-
-  const total = ventas.reduce((acc, v) => acc + Number(v.importe || 0), 0);
 
   return (
     <div className="card">
@@ -158,18 +120,13 @@ const ComprasCard = ({ socioId }) => {
         <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <ShoppingBag size={18} /> Compras
         </span>
-        {!loading && !error && ventas.length > 0 && (
-          <span style={{ fontSize: 13, color: 'var(--gray-500)' }}>
-            {ventas.length} {ventas.length === 1 ? 'compra' : 'compras'} — Total {fmtImporte(total)}
-          </span>
-        )}
       </div>
       {loading ? (
         <div className="card-body"><InlineLoader text="Cargando compras..." /></div>
       ) : error ? (
         <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 14, color: 'var(--gray-500)' }}>No se pudieron cargar las compras.</span>
-          <button className="btn btn-secondary btn-sm" onClick={retryVentas}>Reintentar</button>
+          <button className="btn btn-secondary btn-sm" onClick={onRetry}>Reintentar</button>
         </div>
       ) : ventas.length === 0 ? (
         <div className="card-body" style={{ fontSize: 14, color: 'var(--gray-500)' }}>
@@ -206,9 +163,29 @@ const ComprasCard = ({ socioId }) => {
   );
 };
 
-export const SocioResumen = ({ socioId }) => (
-  <div className="socio-resumen">
-    <CreditosCard key={`c-${socioId}`} socioId={socioId} />
-    <ComprasCard key={`v-${socioId}`} socioId={socioId} />
-  </div>
-);
+const Resumen = ({ socioId }) => {
+  const [ventas, setVentas]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(false);
+
+  const fetchVentas = useCallback(() => {
+    getVentas(socioId)
+      .then(res => setVentas([...res.data].sort((a, b) => new Date(b.fecha) - new Date(a.fecha))))
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [socioId]);
+
+  const retryVentas = () => { setLoading(true); setError(false); fetchVentas(); };
+
+  useEffect(() => { fetchVentas(); }, [fetchVentas]);
+
+  const props = { ventas, loading, error, onRetry: retryVentas };
+  return (
+    <div className="socio-resumen">
+      <CreditosCard {...props} />
+      <ComprasCard {...props} />
+    </div>
+  );
+};
+
+export const SocioResumen = ({ socioId }) => <Resumen key={socioId} socioId={socioId} />;

@@ -255,9 +255,6 @@ export const VentasPage = () => {
         </div>
       )}
 
-      {/* ── Créditos y compras del socio ─────────────────────── */}
-      {selectedSocio && <SocioResumen socioId={selectedSocio.id} />}
-
       {/* ── Sale form ────────────────────────────────────────── */}
       {selectedSocio && (
         <div className="card">
@@ -321,6 +318,9 @@ export const VentasPage = () => {
           </div>
         </div>
       )}
+
+      {/* ── Créditos y compras del socio ─────────────────────── */}
+      {selectedSocio && <SocioResumen socioId={selectedSocio.id} />}
     </div>
   );
 };
