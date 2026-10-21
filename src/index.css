@@ -255,3 +255,7 @@ tr:last-child td { border-bottom: none; }
   .col-span-2 { grid-column: span 1; }
   .hide-mobile { display: none; }
 }
+
+/* ── Resumen del socio (créditos + compras) ── */
+.socio-resumen { display: grid; grid-template-columns: minmax(220px, 1fr) 2fr; gap: 20px; margin-bottom: 20px; align-items: start; }
+@media (max-width: 768px) { .socio-resumen { grid-template-columns: 1fr; } }

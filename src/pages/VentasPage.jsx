@@ -3,6 +3,7 @@ import { Search, ShoppingCart, AlertCircle, CheckCircle2, User } from 'lucide-re
 import { useToast } from '../context/ToastContext';
 import { buscarPorDni, buscarPorNombre, registrarVenta } from '../services/sociosApi';
 import { InlineLoader } from '../components/ui';
+import { SocioResumen } from '../components/socio/SocioResumen';
 
 const LUGARES = ['Villa Allende', 'Villa Carlos Paz'];
 
@@ -253,6 +254,9 @@ export const VentasPage = () => {
           </div>
         </div>
       )}
+
+      {/* ── Créditos y compras del socio ─────────────────────── */}
+      {selectedSocio && <SocioResumen socioId={selectedSocio.id} />}
 
       {/* ── Sale form ────────────────────────────────────────── */}
       {selectedSocio && (
