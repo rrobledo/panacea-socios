@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   ShoppingCart, Trophy, Cake, LogOut, Menu, X, ChevronDown, ChevronRight, Bell, User,
-  Database, Coins,
+  Database, Coins, Sparkles,
 } from 'lucide-react';
 import './layout.css';
 
@@ -11,6 +11,7 @@ const NAV = [
   { label: 'Ventas', icon: ShoppingCart, to: '/' },
   { label: 'Mayores compras', icon: Trophy, to: '/reportes/ranking-compras' },
   { label: 'Cumpleaños', icon: Cake, to: '/reportes/cumpleanios' },
+  { label: 'Por preferencia', icon: Sparkles, to: '/reportes/preferencias' },
   {
     label: 'Maestros', icon: Database,
     children: [

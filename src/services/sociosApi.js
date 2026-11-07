@@ -70,6 +70,20 @@ export const getRankingCompras = (params) =>
 export const getCumpleanios = (desde, hasta) =>
   client.get('/reportes/cumpleanios', { params: { desde, hasta } });
 
+// ── Preferencias (perfil de gustos generado con IA, se actualiza a diario) ───
+// 404 { detail: { code: 'PERFIL_NO_DISPONIBLE' } } si todavía no se generó.
+export const getPreferenciasSocio = (socioId) =>
+  client.get(`/socios/${socioId}/preferencias`);
+
+// Respuesta: [{ socio_id, nombre_apellido, dni, telefono, email, relevancia,
+//   coincidencias: [{ campo: 'etiqueta'|'producto'|'categoria'|'resumen', valor }], perfil_generado_en }]
+export const buscarSociosPorPreferencia = ({ q, incluirResumen = false, skip = 0, limit = 100 }) =>
+  client.get('/reportes/preferencias', { params: { q, incluir_resumen: incluirResumen, skip, limit } });
+
+// Respuesta: [{ etiqueta, socios }] ordenado por cantidad de socios
+export const getEtiquetasPreferencias = () =>
+  client.get('/reportes/preferencias/etiquetas');
+
 // ── Maestro: sistema de puntos (requiere admin) ───────────────────────────
 // Configuración: { meses_expiracion_puntos, costo_juego_maquina, programa_activo }
 export const getConfiguracionPuntos = () => client.get('/admin/configuracion');

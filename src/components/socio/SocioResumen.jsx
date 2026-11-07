@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Coins, ShoppingBag, ChevronRight } from 'lucide-react';
-import { getSocio, getVentas, getVentaDetail } from '../../services/sociosApi';
+import { Coins, ShoppingBag, ChevronRight, Sparkles } from 'lucide-react';
+import { getSocio, getVentas, getVentaDetail, getPreferenciasSocio } from '../../services/sociosApi';
 import { InlineLoader, Modal } from '../ui';
 
 const fmtFecha = (v) => {
@@ -60,6 +60,63 @@ const PuntosCard = ({ socioId, cantidadCompras }) => {
                 {cantidadCompras} {cantidadCompras === 1 ? 'compra registrada' : 'compras registradas'}
               </div>
             )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Gustos y preferencias (perfil generado con IA a partir de las compras) ─
+const PreferenciasCard = ({ socioId }) => {
+  const [perfil, setPerfil]   = useState(null);
+  const [estado, setEstado]   = useState('cargando'); // cargando | ok | sin_perfil | error
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    getPreferenciasSocio(socioId)
+      .then(res => { setPerfil(res.data); setEstado('ok'); })
+      .catch(err => setEstado(err?.response?.data?.detail?.code === 'PERFIL_NO_DISPONIBLE' ? 'sin_perfil' : 'error'));
+  }, [socioId, version]);
+
+  const retry = () => { setEstado('cargando'); setVersion(v => v + 1); };
+  const lista = (titulo, items) => items?.length > 0 && (
+    <div style={{ fontSize: 13, marginTop: 10 }}>
+      <span style={{ color: 'var(--gray-500)' }}>{titulo}: </span>{items.join(' · ')}
+    </div>
+  );
+
+  return (
+    <div className="card" style={{ gridColumn: '1 / -1' }}>
+      <div className="card-header">
+        <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Sparkles size={18} /> Gustos y preferencias
+        </span>
+      </div>
+      <div className="card-body">
+        {estado === 'cargando' ? (
+          <InlineLoader text="Cargando preferencias..." />
+        ) : estado === 'sin_perfil' ? (
+          <span style={{ fontSize: 14, color: 'var(--gray-500)' }}>
+            Todavía no hay perfil para este socio. Se genera automáticamente a partir de sus compras.
+          </span>
+        ) : estado === 'error' ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 14, color: 'var(--gray-500)' }}>No se pudieron cargar las preferencias.</span>
+            <button className="btn btn-secondary btn-sm" onClick={retry}>Reintentar</button>
+          </div>
+        ) : (
+          <>
+            <p style={{ fontSize: 14, margin: 0, lineHeight: 1.5 }}>{perfil.resumen}</p>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+              {perfil.etiquetas.map(e => <span key={e} className="badge badge-primary">{e}</span>)}
+            </div>
+            {lista('Categorías favoritas', perfil.categorias_favoritas)}
+            {lista('Productos favoritos', perfil.productos_favoritos)}
+            <div style={{ fontSize: 12, color: 'var(--gray-400)', marginTop: 12 }}>
+              Actualizado el {new Date(perfil.generado_en).toLocaleDateString('es-AR')} · basado en {perfil.ventas_analizadas}{' '}
+              {perfil.ventas_analizadas === 1 ? 'compra' : 'compras'} · generado con IA, puede contener imprecisiones
+            </div>
           </>
         )}
       </div>
@@ -198,6 +255,7 @@ const Resumen = ({ socioId }) => {
     <div className="socio-resumen">
       <PuntosCard socioId={socioId} cantidadCompras={loading || error ? null : ventas.length} />
       <ComprasCard {...props} />
+      <PreferenciasCard socioId={socioId} />
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { LoginPage } from './components/auth/LoginPage';
 import { OAuthCallback } from './components/auth/OAuthCallback';
 import { VentasPage } from './pages/VentasPage';
 import { RankingComprasPage, CumpleaniosPage } from './pages/ReportesPages';
+import { SociosPorPreferenciaPage } from './pages/PreferenciasPage';
 import { MaestroPuntosPage } from './pages/MaestroPuntosPage';
 import { PageLoader } from './components/ui';
 import './index.css';
@@ -33,6 +34,7 @@ function App() {
                     <Route path="/" element={<VentasPage />} />
                     <Route path="/reportes/ranking-compras" element={<RankingComprasPage />} />
                     <Route path="/reportes/cumpleanios" element={<CumpleaniosPage />} />
+                    <Route path="/reportes/preferencias" element={<SociosPorPreferenciaPage />} />
                     <Route path="/maestros/puntos" element={<MaestroPuntosPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
