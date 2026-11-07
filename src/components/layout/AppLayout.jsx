@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -61,9 +61,20 @@ const NavItem = ({ item, collapsed }) => {
   );
 };
 
+// Al cambiar de pantalla se empieza desde arriba; las pantallas que recuerdan su posición
+// (useScrollRestore) la restauran después. El scroll lo maneja la app, no el navegador.
+const useScrollTopOnNavigate = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+  }, []);
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+};
+
 export const AppLayout = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  useScrollTopOnNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed]     = useState(false);
   const [userMenu, setUserMenu]       = useState(false);

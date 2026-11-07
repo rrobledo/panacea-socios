@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { buscarSociosPorPreferencia, getEtiquetasPreferencias } from '../services/sociosApi';
 import { InlineLoader, LugarFilter } from '../components/ui';
 import { useSessionState } from '../hooks/useSessionState';
+import { useScrollRestore } from '../hooks/useScrollRestore';
 
 const POR_PAGINA = 100;
 const ETIQUETAS_VISIBLES = 30;
@@ -38,6 +39,7 @@ export const SociosPorPreferenciaPage = () => {
   const [busqueda, setBusqueda]         = useSessionState('reporte-preferencias:busqueda', null); // { q, incluirResumen, lugar, skip }
   const [rows, setRows]                 = useState([]);
   const [loading, setLoading]           = useState(() => busqueda != null);
+  useScrollRestore('reporte-preferencias:scroll', !loading);
   const [etiquetas, setEtiquetas]       = useState([]);
   const [verTodas, setVerTodas]         = useState(false);
 

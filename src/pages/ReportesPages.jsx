@@ -8,6 +8,7 @@ import { getRankingCompras, getCumpleanios } from '../services/sociosApi';
 import { DataGrid } from '../components/grid/DataGrid';
 import { InlineLoader, LugarFilter } from '../components/ui';
 import { useSessionState } from '../hooks/useSessionState';
+import { useScrollRestore } from '../hooks/useScrollRestore';
 
 const fmtImporte = (v) => {
   if (v == null) return '—';
@@ -28,6 +29,7 @@ export const RankingComprasPage = () => {
   const [lugar, setLugar]     = useSessionState('reporte-ranking:lugar', '');
   const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(true);
+  useScrollRestore('reporte-ranking:scroll', !loading);
 
   useEffect(() => {
     const params = {};
@@ -141,6 +143,7 @@ export const CumpleaniosPage = () => {
   const [lugar, setLugar]     = useSessionState('reporte-cumpleanios:lugar', '');
   const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(true);
+  useScrollRestore('reporte-cumpleanios:scroll', !loading);
 
   useEffect(() => {
     getCumpleanios(desde, hasta, lugar)
