@@ -4,7 +4,7 @@ import { Search, ShoppingCart, AlertCircle, CheckCircle2, User, Gift } from 'luc
 import { useToast } from '../context/ToastContext';
 import { buscarPorDni, buscarPorNombre, registrarVenta, getBeneficiosDisponibles } from '../services/sociosApi';
 import { InlineLoader } from '../components/ui';
-import { SocioResumen } from '../components/socio/SocioResumen';
+import { SocioPerfil, SocioCompras } from '../components/socio/SocioResumen';
 
 const LUGARES = ['Villa Allende', 'Villa Carlos Paz', 'Villa General Belgrano'];
 
@@ -340,6 +340,9 @@ export const VentasPage = () => {
         </div>
       )}
 
+      {/* ── Puntos y gustos y preferencias del socio ─────────── */}
+      {selectedSocio && <SocioPerfil socioId={selectedSocio.id} />}
+
       {/* ── Sale form ────────────────────────────────────────── */}
       {selectedSocio && (
         <div className="card">
@@ -452,8 +455,8 @@ export const VentasPage = () => {
         </div>
       )}
 
-      {/* ── Créditos y compras del socio ─────────────────────── */}
-      {selectedSocio && <SocioResumen socioId={selectedSocio.id} />}
+      {/* ── Historial de compras del socio ───────────────────── */}
+      {selectedSocio && <SocioCompras socioId={selectedSocio.id} />}
     </div>
   );
 };

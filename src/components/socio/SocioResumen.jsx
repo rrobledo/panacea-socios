@@ -19,7 +19,7 @@ const fmtImporte = (v) => {
 // ── Puntos: saldo actual del socio ────────────────────────────────────────
 const fmtPuntos = (v) => new Intl.NumberFormat('es-AR').format(v);
 
-const PuntosCard = ({ socioId, cantidadCompras }) => {
+const PuntosCard = ({ socioId }) => {
   const [saldo, setSaldo]     = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);
@@ -55,11 +55,6 @@ const PuntosCard = ({ socioId, cantidadCompras }) => {
             <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--primary)', lineHeight: 1.1 }}>
               {saldo == null ? '—' : `${fmtPuntos(saldo)} pts`}
             </div>
-            {cantidadCompras != null && (
-              <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 8 }}>
-                {cantidadCompras} {cantidadCompras === 1 ? 'compra registrada' : 'compras registradas'}
-              </div>
-            )}
           </>
         )}
       </div>
@@ -87,7 +82,7 @@ const PreferenciasCard = ({ socioId }) => {
   );
 
   return (
-    <div className="card" style={{ gridColumn: '1 / -1' }}>
+    <div className="card">
       <div className="card-header">
         <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Sparkles size={18} /> Gustos y preferencias
@@ -190,6 +185,9 @@ const ComprasCard = ({ ventas, loading, error, onRetry }) => {
       <div className="card-header">
         <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <ShoppingBag size={18} /> Compras
+          {!loading && !error && ventas.length > 0 && (
+            <span className="badge badge-gray">{ventas.length}</span>
+          )}
         </span>
       </div>
       {loading ? (
@@ -234,7 +232,16 @@ const ComprasCard = ({ ventas, loading, error, onRetry }) => {
   );
 };
 
-const Resumen = ({ socioId }) => {
+// Perfil destacado (arriba del formulario de venta): puntos y gustos y preferencias.
+const Perfil = ({ socioId }) => (
+  <div className="socio-resumen" style={{ marginTop: 0, marginBottom: 20 }}>
+    <PuntosCard socioId={socioId} />
+    <PreferenciasCard socioId={socioId} />
+  </div>
+);
+
+// Historial de compras (al final de la pantalla).
+const Compras = ({ socioId }) => {
   const [ventas, setVentas]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);
@@ -250,14 +257,13 @@ const Resumen = ({ socioId }) => {
 
   useEffect(() => { fetchVentas(); }, [fetchVentas]);
 
-  const props = { ventas, loading, error, onRetry: retryVentas };
   return (
-    <div className="socio-resumen">
-      <PuntosCard socioId={socioId} cantidadCompras={loading || error ? null : ventas.length} />
-      <ComprasCard {...props} />
-      <PreferenciasCard socioId={socioId} />
+    <div style={{ marginTop: 20 }}>
+      <ComprasCard ventas={ventas} loading={loading} error={error} onRetry={retryVentas} />
     </div>
   );
 };
 
-export const SocioResumen = ({ socioId }) => <Resumen key={socioId} socioId={socioId} />;
+// `key` reinicia el estado al cambiar de socio.
+export const SocioPerfil  = ({ socioId }) => <Perfil key={socioId} socioId={socioId} />;
+export const SocioCompras = ({ socioId }) => <Compras key={socioId} socioId={socioId} />;
