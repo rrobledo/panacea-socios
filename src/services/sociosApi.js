@@ -38,11 +38,21 @@ export const buscarPorDni = (dni) =>
 export const buscarPorNombre = (nombre) =>
   client.get('/socios/', { params: { name: nombre.normalize('NFD').replace(/[̀-ͯ]/g, '') } });
 
-// data puede incluir `cupon_codigo` (un solo cupón por compra). En ese caso `importe` es el
-// monto antes del descuento y el backend registra el neto.
-// Respuesta: venta + { descuento, puntos_generados } · 409 { detail: { code: 'CUPON_INVALIDO', message } }
+// data puede incluir `cupon_codigo` o `beneficio_id` (excluyentes: un solo beneficio por compra).
+// En ambos casos `importe` es el monto antes del descuento y el backend registra el neto.
+// Con `beneficio_id` el backend descuenta los puntos del beneficio en la misma operación.
+// Respuesta: venta + { descuento, puntos_generados, puntos_canjeados, saldo_puntos }
+// 409 { detail: { code, message } }: CUPON_INVALIDO, SALDO_INSUFICIENTE, LIMITE_ALCANZADO, SIN_STOCK, …
 export const registrarVenta = (data) =>
   client.post('/ventas/', data);
+
+// Beneficios que el socio puede usar en el mostrador.
+// Respuesta: { socio_id, saldo_puntos, beneficios: [{ id, nombre, costo_puntos, porcentaje_descuento,
+//   tope_descuento, usable, motivo, descuento_estimado }] }
+export const getBeneficiosDisponibles = (socioId, importe) =>
+  client.get('/ventas/beneficios-disponibles', {
+    params: { socio_id: socioId, ...(importe > 0 ? { importe } : {}) },
+  });
 
 // Valida un cupón sin consumirlo. Respuesta: { valido, descuento, porcentaje_descuento, motivo }
 export const validarCupon = (codigo, socioId, monto) =>

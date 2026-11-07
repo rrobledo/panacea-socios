@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, ShoppingCart, AlertCircle, CheckCircle2, User, Ticket } from 'lucide-react';
+import { Search, ShoppingCart, AlertCircle, CheckCircle2, User, Ticket, Gift } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import { buscarPorDni, buscarPorNombre, registrarVenta, validarCupon } from '../services/sociosApi';
+import { buscarPorDni, buscarPorNombre, registrarVenta, validarCupon, getBeneficiosDisponibles } from '../services/sociosApi';
 import { InlineLoader } from '../components/ui';
 import { SocioResumen } from '../components/socio/SocioResumen';
 
@@ -13,6 +13,25 @@ const fmtImporte = (v) =>
 
 // Mensaje de error de negocio del backend: { detail: { code, message } }
 const errorMessage = (err, fallback) => err?.response?.data?.detail?.message || fallback;
+
+// Por qué un beneficio no se puede usar (códigos del backend)
+const MOTIVOS = {
+  SALDO_INSUFICIENTE: 'Puntos insuficientes',
+  LIMITE_ALCANZADO: 'Ya usó este beneficio',
+  PROGRAMA_INACTIVO: 'Programa de puntos inactivo',
+  SIN_STOCK: 'Sin stock',
+  BENEFICIO_NO_DISPONIBLE: 'No disponible',
+};
+// Errores al registrar que pueden deberse a un listado desactualizado: se vuelve a pedir.
+const ERRORES_BENEFICIO = new Set([...Object.keys(MOTIVOS), 'BENEFICIO_NO_ENCONTRADO']);
+
+// Mismo cálculo que el backend: porcentaje con tope opcional, redondeado a centavos.
+const calcularDescuento = (b, monto) => {
+  if (!b || !(monto > 0)) return 0;
+  let d = monto * Number(b.porcentaje_descuento) / 100;
+  if (b.tope_descuento != null) d = Math.min(d, Number(b.tope_descuento));
+  return Math.round(d * 100) / 100;
+};
 
 const formatFecha = (f) => {
   if (!f) return '—';
@@ -44,13 +63,38 @@ export const VentasPage = () => {
 
   const resetCupon = () => { setCupon(''); setCuponCheck(null); };
 
+  // Beneficio elegido en el mostrador (opcional, excluyente con el cupón): descuenta sus puntos al registrar.
+  const [beneficiosData, setBeneficiosData] = useState(null); // { saldo_puntos, beneficios }
+  const [cargandoBeneficios, setCargandoBeneficios] = useState(false);
+  const [beneficioId, setBeneficioId] = useState('');
+
+  const cargarBeneficios = useCallback(async (socioId) => {
+    setCargandoBeneficios(true);
+    try {
+      const res = await getBeneficiosDisponibles(socioId);
+      setBeneficiosData(res.data);
+    } catch {
+      setBeneficiosData(null);
+    } finally {
+      setCargandoBeneficios(false);
+    }
+  }, []);
+
+  // Seleccionar un socio reinicia el beneficio elegido y carga sus beneficios.
+  const seleccionarSocio = useCallback((socio) => {
+    setSelectedSocio(socio);
+    setBeneficioId('');
+    setBeneficiosData(null);
+    if (socio) cargarBeneficios(socio.id);
+  }, [cargarBeneficios]);
+
   useEffect(() => {
     if (!dniParam) { dniRef.current?.focus(); return; }
     buscarPorDni(dniParam)
       .then(res => {
         const data = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
         setSocios(data);
-        if (data.length > 0) setSelectedSocio(data[0]);
+        if (data.length > 0) seleccionarSocio(data[0]);
       })
       .catch(() => toast.error('Error al buscar el socio. Intentá de nuevo.'))
       .finally(() => setSearching(false));
@@ -84,7 +128,7 @@ export const VentasPage = () => {
         : await buscarPorNombre(query);
       const data = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
       setSocios(data);
-      if (data.length > 0) setSelectedSocio(data[0]);
+      if (data.length > 0) seleccionarSocio(data[0]);
     } catch {
       toast.error('Error al buscar el socio. Intentá de nuevo.');
     } finally {
@@ -120,17 +164,28 @@ export const VentasPage = () => {
         importe: parseFloat(importe),
         detalles: [],
         ...(cupon.trim() ? { cupon_codigo: cupon.trim() } : {}),
+        ...(beneficioId ? { beneficio_id: Number(beneficioId) } : {}),
       });
-      const { descuento, puntos_generados: puntos } = res.data || {};
+      const {
+        descuento, puntos_generados: puntos, puntos_canjeados: canjeados, saldo_puntos: saldo,
+      } = res.data || {};
       const partes = ['¡Venta registrada!'];
       if (Number(descuento) > 0) partes.push(`Descuento: ${fmtImporte(descuento)}.`);
+      if (canjeados > 0) partes.push(`Se descontaron ${canjeados} puntos por el beneficio.`);
       if (puntos > 0) partes.push(`El socio sumó ${puntos} puntos.`);
+      if (canjeados > 0 && saldo != null) partes.push(`Saldo: ${saldo} puntos.`);
       toast.success(partes.join(' '));
       resetAll();
     } catch (err) {
       toast.error(errorMessage(err, 'Error al registrar la venta. Intentá de nuevo.'));
-      if (err?.response?.data?.detail?.code === 'CUPON_INVALIDO') {
+      const code = err?.response?.data?.detail?.code;
+      if (code === 'CUPON_INVALIDO') {
         setCuponCheck({ valido: false, motivo: errorMessage(err, 'Cupón inválido.') });
+      }
+      if (beneficioId && ERRORES_BENEFICIO.has(code)) {
+        // El saldo o la disponibilidad cambiaron: refrescar el listado y volver a elegir.
+        setBeneficioId('');
+        cargarBeneficios(selectedSocio.id);
       }
     } finally {
       setRegistering(false);
@@ -151,7 +206,12 @@ export const VentasPage = () => {
   // Si se ingresó un cupón, tiene que estar validado contra el importe actual.
   const cuponOk = !cupon.trim() || cuponCheck?.valido === true;
   const canRegister = selectedSocio && lugar && importe && parseFloat(importe) > 0 && cuponOk;
-  const neto = cuponCheck?.valido ? parseFloat(importe || 0) - Number(cuponCheck.descuento || 0) : null;
+  const beneficios = beneficiosData?.beneficios || [];
+  const beneficio = beneficios.find(b => String(b.id) === String(beneficioId)) || null;
+  const descuentoBeneficio = calcularDescuento(beneficio, parseFloat(importe));
+  const neto = cuponCheck?.valido
+    ? parseFloat(importe || 0) - Number(cuponCheck.descuento || 0)
+    : (beneficio && parseFloat(importe) > 0 ? parseFloat(importe) - descuentoBeneficio : null);
 
   return (
     <div>
@@ -268,7 +328,7 @@ export const VentasPage = () => {
                   return (
                     <tr
                       key={s.id}
-                      onClick={() => { setSelectedSocio(s); setLugar(''); setImporte(''); resetCupon(); }}
+                      onClick={() => { seleccionarSocio(s); setLugar(''); setImporte(''); resetCupon(); }}
                       style={{
                         cursor: 'pointer',
                         background: isSelected ? 'var(--primary-light)' : undefined,
@@ -363,6 +423,7 @@ export const VentasPage = () => {
                     placeholder="Código del cupón"
                     value={cupon}
                     maxLength={20}
+                    disabled={!!beneficioId}
                     style={{ textTransform: 'uppercase' }}
                     onChange={e => { setCupon(e.target.value); setCuponCheck(null); }}
                     onKeyDown={e => e.key === 'Enter' && handleValidarCupon()}
@@ -371,12 +432,15 @@ export const VentasPage = () => {
                     type="button"
                     className="btn btn-secondary"
                     onClick={handleValidarCupon}
-                    disabled={!cupon.trim() || !(parseFloat(importe) > 0) || validando}
+                    disabled={!!beneficioId || !cupon.trim() || !(parseFloat(importe) > 0) || validando}
                   >
                     {validando ? <span className="spinner" style={{ width: 16, height: 16 }} /> : <Ticket size={16} />}
                     Validar
                   </button>
                 </div>
+                {beneficioId && (
+                  <span className="form-hint">Se usa el beneficio elegido: un solo beneficio por compra.</span>
+                )}
                 {cupon.trim() && !cuponCheck && (
                   <span className="form-hint">Ingresá el importe y validá el cupón. Se acepta un solo cupón por compra.</span>
                 )}
@@ -384,6 +448,57 @@ export const VentasPage = () => {
                   <span className="form-error">{cuponCheck.motivo || 'Cupón inválido.'}</span>
                 )}
               </div>
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Gift size={14} /> Beneficio a usar (opcional)
+                  {beneficiosData && (
+                    <span style={{ marginLeft: 'auto', fontWeight: 400, color: 'var(--gray-500)' }}>
+                      Saldo: <strong>{beneficiosData.saldo_puntos}</strong> puntos
+                    </span>
+                  )}
+                </label>
+                <select
+                  className="form-select"
+                  value={beneficioId}
+                  onChange={e => setBeneficioId(e.target.value)}
+                  disabled={cargandoBeneficios || !!cupon.trim() || beneficios.length === 0}
+                >
+                  <option value="">
+                    {cargandoBeneficios ? 'Cargando beneficios...'
+                      : beneficios.length === 0 ? 'No hay beneficios vigentes' : 'Ninguno'}
+                  </option>
+                  {beneficios.map(b => {
+                    const desc = calcularDescuento(b, parseFloat(importe));
+                    const detalle = b.usable
+                      ? (desc > 0 ? ` · −${fmtImporte(desc)}` : ` · ${b.porcentaje_descuento}%`)
+                      : ` · ${MOTIVOS[b.motivo] || 'No disponible'}`;
+                    return (
+                      <option key={b.id} value={b.id} disabled={!b.usable}>
+                        {b.nombre} — {b.costo_puntos} pts{detalle}
+                      </option>
+                    );
+                  })}
+                </select>
+                {cupon.trim() && (
+                  <span className="form-hint">Hay un cupón ingresado: un solo beneficio por compra.</span>
+                )}
+                {beneficio && (
+                  <span className="form-hint">
+                    Al registrar se descuentan {beneficio.costo_puntos} puntos del socio.
+                  </span>
+                )}
+              </div>
+              {beneficio && parseFloat(importe) > 0 && (
+                <div className="form-group">
+                  <label className="form-label">Total con beneficio</label>
+                  <div className="alert alert-success" style={{ margin: 0 }}>
+                    <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                    <span>
+                      {beneficio.porcentaje_descuento}% · −{fmtImporte(descuentoBeneficio)} → <strong>{fmtImporte(neto)}</strong>
+                    </span>
+                  </div>
+                </div>
+              )}
               {cuponCheck?.valido && (
                 <div className="form-group">
                   <label className="form-label">Total con descuento</label>
