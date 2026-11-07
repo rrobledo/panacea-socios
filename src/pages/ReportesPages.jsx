@@ -7,6 +7,7 @@ import { useToast } from '../context/ToastContext';
 import { getRankingCompras, getCumpleanios } from '../services/sociosApi';
 import { DataGrid } from '../components/grid/DataGrid';
 import { InlineLoader, LugarFilter } from '../components/ui';
+import { useSessionState } from '../hooks/useSessionState';
 
 const fmtImporte = (v) => {
   if (v == null) return '—';
@@ -21,9 +22,10 @@ const hoy = () => format(new Date(), 'yyyy-MM-dd');
 export const RankingComprasPage = () => {
   const toast = useToast();
   const navigate = useNavigate();
-  const [desde, setDesde]     = useState('');
-  const [hasta, setHasta]     = useState('');
-  const [lugar, setLugar]     = useState('');
+  // Los filtros se recuerdan al ir a ver un socio y volver
+  const [desde, setDesde]     = useSessionState('reporte-ranking:desde', '');
+  const [hasta, setHasta]     = useSessionState('reporte-ranking:hasta', '');
+  const [lugar, setLugar]     = useSessionState('reporte-ranking:lugar', '');
   const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -97,6 +99,8 @@ export const RankingComprasPage = () => {
         data={rows}
         loading={loading}
         rowKey="socio_id"
+        stateKey="reporte-ranking:grilla"
+        resetKey={`${desde}|${hasta}|${lugar}`}
         emptyText="No hay compras registradas en el período."
         onRowClick={(row) => navigate(`/?dni=${encodeURIComponent(row.dni)}`)}
       />
@@ -131,9 +135,10 @@ const exportarCsv = (rows, nombre) => {
 export const CumpleaniosPage = () => {
   const toast = useToast();
   const navigate = useNavigate();
-  const [desde, setDesde]     = useState(hoy);
-  const [hasta, setHasta]     = useState(hoy);
-  const [lugar, setLugar]     = useState('');
+  // Los filtros se recuerdan al ir a ver un socio y volver
+  const [desde, setDesde]     = useSessionState('reporte-cumpleanios:desde', hoy);
+  const [hasta, setHasta]     = useSessionState('reporte-cumpleanios:hasta', hoy);
+  const [lugar, setLugar]     = useSessionState('reporte-cumpleanios:lugar', '');
   const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(true);
 

@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   useReactTable, getCoreRowModel, getSortedRowModel,
   getFilteredRowModel, getPaginationRowModel, flexRender,
 } from '@tanstack/react-table';
 import { ChevronUp, ChevronDown, ChevronsUpDown, Download, Filter } from 'lucide-react';
 import { SearchInput, Select } from '../ui';
+import { useSessionState } from '../../hooks/useSessionState';
 
 const SortIcon = ({ sorted }) => {
   if (sorted === 'asc')  return <ChevronUp size={13} />;
@@ -27,11 +28,26 @@ export const DataGrid = ({
   onRowClick,
   selectable = false,
   emptyText = 'No records found',
+  // Con `stateKey`, búsqueda, orden y página se recuerdan al salir de la pantalla y volver.
+  stateKey,
+  // Cuando cambia (p. ej. los filtros de la pantalla), vuelve a la primera página.
+  resetKey,
 }) => {
-  const [globalFilter, setGlobalFilter]   = useState('');
+  const [globalFilter, setGlobalFilter]   = useSessionState(stateKey && `${stateKey}:busqueda`, '');
   const [rowSelection, setRowSelection]   = useState({});
-  const [sorting, setSorting]             = useState([]);
+  const [sorting, setSorting]             = useSessionState(stateKey && `${stateKey}:orden`, []);
   const [columnFilters, setColumnFilters] = useState([]);
+  const [pagination, setPagination]       = useSessionState(
+    stateKey && `${stateKey}:pagina`, { pageIndex: 0, pageSize: defaultPageSize },
+  );
+  const irAPrimera = () => setPagination(p => ({ ...p, pageIndex: 0 }));
+
+  const resetRef = useRef(resetKey);
+  useEffect(() => {
+    if (resetRef.current === resetKey) return;
+    resetRef.current = resetKey;
+    irAPrimera();
+  }, [resetKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const table = useReactTable({
     data: data || [],
@@ -59,13 +75,23 @@ export const DataGrid = ({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    state: { sorting, columnFilters, globalFilter, rowSelection },
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
+    state: { sorting, columnFilters, globalFilter, rowSelection, pagination },
+    onSortingChange: (u) => { setSorting(u); irAPrimera(); },
+    onColumnFiltersChange: (u) => { setColumnFilters(u); irAPrimera(); },
+    onGlobalFilterChange: (u) => { setGlobalFilter(u); irAPrimera(); },
     onRowSelectionChange: setRowSelection,
-    initialState: { pagination: { pageSize: defaultPageSize } },
+    onPaginationChange: setPagination,
+    // La página se maneja acá (se conserva al volver); no reiniciarla cuando llegan los datos.
+    autoResetPageIndex: false,
   });
+
+  // Si los datos se achican y la página guardada ya no existe, ir a la última disponible.
+  const pageCount = table.getPageCount();
+  useEffect(() => {
+    if (!loading && pagination.pageIndex > 0 && pagination.pageIndex >= pageCount) {
+      setPagination(p => ({ ...p, pageIndex: Math.max(0, pageCount - 1) }));
+    }
+  }, [loading, pageCount, pagination.pageIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { pageIndex, pageSize } = table.getState().pagination;
   const totalRows = total ?? data?.length ?? 0;

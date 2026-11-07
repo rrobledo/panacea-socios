@@ -4,6 +4,7 @@ import { Search, Sparkles, Download } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { buscarSociosPorPreferencia, getEtiquetasPreferencias } from '../services/sociosApi';
 import { InlineLoader, LugarFilter } from '../components/ui';
+import { useSessionState } from '../hooks/useSessionState';
 
 const POR_PAGINA = 100;
 const ETIQUETAS_VISIBLES = 30;
@@ -30,12 +31,13 @@ const exportarCsv = (rows, nombre) => {
 export const SociosPorPreferenciaPage = () => {
   const toast = useToast();
   const navigate = useNavigate();
-  const [texto, setTexto]               = useState('');
-  const [incluirResumen, setIncluirResumen] = useState(false);
-  const [lugar, setLugar]               = useState(''); // sucursal donde más compra el socio ('' = todas)
-  const [busqueda, setBusqueda]         = useState(null); // { q, incluirResumen, lugar, skip } de la última búsqueda
+  // Filtros y última búsqueda se recuerdan al ir a ver un socio y volver
+  const [texto, setTexto]               = useSessionState('reporte-preferencias:texto', '');
+  const [incluirResumen, setIncluirResumen] = useSessionState('reporte-preferencias:resumen', false);
+  const [lugar, setLugar]               = useSessionState('reporte-preferencias:lugar', ''); // sucursal donde más compra ('' = todas)
+  const [busqueda, setBusqueda]         = useSessionState('reporte-preferencias:busqueda', null); // { q, incluirResumen, lugar, skip }
   const [rows, setRows]                 = useState([]);
-  const [loading, setLoading]           = useState(false);
+  const [loading, setLoading]           = useState(() => busqueda != null);
   const [etiquetas, setEtiquetas]       = useState([]);
   const [verTodas, setVerTodas]         = useState(false);
 
@@ -44,6 +46,15 @@ export const SociosPorPreferenciaPage = () => {
       .then(res => setEtiquetas(res.data))
       .catch(() => toast.error('No se pudieron cargar las preferencias disponibles.'));
   }, [lugar]);
+
+  // Al volver a la pantalla, repetir la última búsqueda para mostrar los mismos resultados
+  useEffect(() => {
+    if (!busqueda) return;
+    buscarSociosPorPreferencia({ ...busqueda, limit: POR_PAGINA })
+      .then(res => setRows(res.data))
+      .catch(() => toast.error('No se pudo realizar la búsqueda. Intentá de nuevo.'))
+      .finally(() => setLoading(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- solo al montar
 
   const buscar = async (params) => {
     setBusqueda(params);
