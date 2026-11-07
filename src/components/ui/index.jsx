@@ -126,6 +126,18 @@ export const Select = ({ options = [], value, onChange, placeholder = 'Select…
   </select>
 );
 
+// ── Filtro de sucursal (opcional: '' = todas) ─────────────────────────────
+import { LUGARES } from '../../constants/lugares';
+export const LugarFilter = ({ value, onChange, label = 'Sucursal', disabled }) => (
+  <div className="form-group">
+    <label className="form-label">{label}</label>
+    <select className="form-select" value={value} onChange={e => onChange(e.target.value)} disabled={disabled}>
+      <option value="">Todas</option>
+      {LUGARES.map(l => <option key={l} value={l}>{l}</option>)}
+    </select>
+  </div>
+);
+
 // ── Status Badge ──────────────────────────────────────────────────────────
 const STATUS_MAP = {
   active: 'success', inactive: 'gray', pending: 'warning',

@@ -6,7 +6,7 @@ import { es } from 'date-fns/locale';
 import { useToast } from '../context/ToastContext';
 import { getRankingCompras, getCumpleanios } from '../services/sociosApi';
 import { DataGrid } from '../components/grid/DataGrid';
-import { InlineLoader } from '../components/ui';
+import { InlineLoader, LugarFilter } from '../components/ui';
 
 const fmtImporte = (v) => {
   if (v == null) return '—';
@@ -23,6 +23,7 @@ export const RankingComprasPage = () => {
   const navigate = useNavigate();
   const [desde, setDesde]     = useState('');
   const [hasta, setHasta]     = useState('');
+  const [lugar, setLugar]     = useState('');
   const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,11 +31,12 @@ export const RankingComprasPage = () => {
     const params = {};
     if (desde) params.desde = desde;
     if (hasta) params.hasta = hasta;
+    if (lugar) params.lugar = lugar;
     getRankingCompras(params)
       .then(res => setRows(res.data.map((r, i) => ({ ...r, puesto: i + 1, total_compras: Number(r.total_compras) }))))
       .catch(() => toast.error('No se pudo cargar el reporte.'))
       .finally(() => setLoading(false));
-  }, [desde, hasta]);
+  }, [desde, hasta, lugar]);
 
   const onFiltro = (setter) => (e) => { setLoading(true); setter(e.target.value); };
 
@@ -60,7 +62,7 @@ export const RankingComprasPage = () => {
       <div className="page-header">
         <div>
           <div className="page-title">Socios por mayor compra</div>
-          <div className="page-subtitle">Total comprado por cada socio, de mayor a menor. Hacé clic en un socio para ver sus datos y compras.</div>
+          <div className="page-subtitle">Total comprado por cada socio, de mayor a menor{lugar ? ` (solo compras en ${lugar})` : ''}. Hacé clic en un socio para ver sus datos y compras.</div>
         </div>
       </div>
 
@@ -75,11 +77,12 @@ export const RankingComprasPage = () => {
               <label className="form-label">Hasta</label>
               <input type="date" className="form-input" value={hasta} min={desde || undefined} onChange={onFiltro(setHasta)} />
             </div>
-            {(desde || hasta) && (
+            <LugarFilter label="Sucursal de la compra" value={lugar} onChange={v => { setLoading(true); setLugar(v); }} />
+            {(desde || hasta || lugar) && (
               <button
                 className="btn btn-ghost btn-sm"
                 style={{ alignSelf: 'flex-end' }}
-                onClick={() => { setLoading(true); setDesde(''); setHasta(''); }}
+                onClick={() => { setLoading(true); setDesde(''); setHasta(''); setLugar(''); }}
               >
                 Limpiar
               </button>
@@ -115,6 +118,7 @@ const exportarCsv = (rows, nombre) => {
   const cols = [
     ['fecha_cumple', 'Fecha cumpleaños'], ['nombre_apellido', 'Nombre y Apellido'], ['dni', 'DNI'],
     ['telefono', 'Teléfono'], ['email', 'Email'], ['fecha_nacimiento', 'Fecha Nac.'], ['edad', 'Cumple (años)'],
+    ['lugar_principal', 'Sucursal'],
   ];
   const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const csv = [cols.map(c => esc(c[1])).join(','), ...rows.map(r => cols.map(c => esc(r[c[0]])).join(','))].join('\n');
@@ -129,15 +133,16 @@ export const CumpleaniosPage = () => {
   const navigate = useNavigate();
   const [desde, setDesde]     = useState(hoy);
   const [hasta, setHasta]     = useState(hoy);
+  const [lugar, setLugar]     = useState('');
   const [rows, setRows]       = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getCumpleanios(desde, hasta)
+    getCumpleanios(desde, hasta, lugar)
       .then(res => setRows(res.data))
       .catch(() => toast.error('No se pudo cargar el reporte.'))
       .finally(() => setLoading(false));
-  }, [desde, hasta]);
+  }, [desde, hasta, lugar]);
 
   const setRango = (d, h) => {
     if (d === desde && h === hasta) return;
@@ -192,6 +197,7 @@ export const CumpleaniosPage = () => {
               <label className="form-label">Hasta</label>
               <input type="date" className="form-input" value={hasta} onChange={onHasta} />
             </div>
+            <LugarFilter label="Sucursal donde más compra" value={lugar} onChange={v => { setLoading(true); setLugar(v); }} />
             <div className="flex gap-2" style={{ alignSelf: 'flex-end', flexWrap: 'wrap' }}>
               {atajos.map(a => (
                 <button
@@ -207,7 +213,7 @@ export const CumpleaniosPage = () => {
               <button
                 className="btn btn-ghost btn-sm"
                 style={{ alignSelf: 'flex-end', marginLeft: 'auto' }}
-                onClick={() => exportarCsv(rows, `cumpleanios_${desde}_${hasta}`)}
+                onClick={() => exportarCsv(rows, `cumpleanios_${desde}_${hasta}${lugar ? `_${lugar}` : ''}`)}
               >
                 <Download size={14} /> Exportar CSV
               </button>
@@ -248,6 +254,7 @@ export const CumpleaniosPage = () => {
                       <th>Fecha Nac.</th>
                       <th>Cumpleaños</th>
                       <th>Cumple</th>
+                      <th>Sucursal</th>
                       <th />
                     </tr>
                   </thead>
@@ -265,6 +272,7 @@ export const CumpleaniosPage = () => {
                         <td>{format(parseISO(s.fecha_nacimiento), 'dd/MM/yyyy')}</td>
                         <td>{format(parseISO(s.fecha_cumple), 'dd/MM/yyyy')}</td>
                         <td>{s.edad} años</td>
+                        <td>{s.lugar_principal || '—'}</td>
                         <td style={{ textAlign: 'right', color: 'var(--primary)', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap' }}>
                           Ver socio →
                         </td>

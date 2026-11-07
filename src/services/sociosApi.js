@@ -67,8 +67,9 @@ export const getVentaDetail = (ventaId) =>
 export const getRankingCompras = (params) =>
   client.get('/reportes/ranking_compras', { params });
 
-export const getCumpleanios = (desde, hasta) =>
-  client.get('/reportes/cumpleanios', { params: { desde, hasta } });
+// `lugar` opcional en los reportes: vacío = todas las sucursales.
+export const getCumpleanios = (desde, hasta, lugar) =>
+  client.get('/reportes/cumpleanios', { params: { desde, hasta, lugar: lugar || undefined } });
 
 // ── Preferencias (perfil de gustos generado con IA, se actualiza a diario) ───
 // 404 { detail: { code: 'PERFIL_NO_DISPONIBLE' } } si todavía no se generó.
@@ -77,12 +78,12 @@ export const getPreferenciasSocio = (socioId) =>
 
 // Respuesta: [{ socio_id, nombre_apellido, dni, telefono, email, relevancia,
 //   coincidencias: [{ campo: 'etiqueta'|'producto'|'categoria'|'resumen', valor }], perfil_generado_en }]
-export const buscarSociosPorPreferencia = ({ q, incluirResumen = false, skip = 0, limit = 100 }) =>
-  client.get('/reportes/preferencias', { params: { q, incluir_resumen: incluirResumen, skip, limit } });
+export const buscarSociosPorPreferencia = ({ q, incluirResumen = false, lugar, skip = 0, limit = 100 }) =>
+  client.get('/reportes/preferencias', { params: { q, incluir_resumen: incluirResumen, lugar: lugar || undefined, skip, limit } });
 
 // Respuesta: [{ etiqueta, socios }] ordenado por cantidad de socios
-export const getEtiquetasPreferencias = () =>
-  client.get('/reportes/preferencias/etiquetas');
+export const getEtiquetasPreferencias = (lugar) =>
+  client.get('/reportes/preferencias/etiquetas', { params: { lugar: lugar || undefined } });
 
 // ── Maestro: sistema de puntos (requiere admin) ───────────────────────────
 // Configuración: { meses_expiracion_puntos, costo_juego_maquina, programa_activo }

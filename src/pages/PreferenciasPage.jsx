@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Sparkles, Download } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { buscarSociosPorPreferencia, getEtiquetasPreferencias } from '../services/sociosApi';
-import { InlineLoader } from '../components/ui';
+import { InlineLoader, LugarFilter } from '../components/ui';
 
 const POR_PAGINA = 100;
 const ETIQUETAS_VISIBLES = 30;
@@ -15,7 +15,7 @@ const textoCoincidencias = (cs) => cs.map(c => `${CAMPOS[c.campo] || c.campo}: $
 const exportarCsv = (rows, nombre) => {
   const cols = [
     ['nombre_apellido', 'Nombre y Apellido'], ['dni', 'DNI'], ['telefono', 'Teléfono'], ['email', 'Email'],
-    ['coincidencias', 'Coincidencias'], ['perfil_generado_en', 'Perfil actualizado'],
+    ['coincidencias', 'Coincidencias'], ['lugar_principal', 'Sucursal'], ['perfil_generado_en', 'Perfil actualizado'],
   ];
   const valor = (r, k) => (k === 'coincidencias' ? textoCoincidencias(r.coincidencias)
     : k === 'perfil_generado_en' ? fmtFecha(r[k]) : r[k]);
@@ -32,17 +32,18 @@ export const SociosPorPreferenciaPage = () => {
   const navigate = useNavigate();
   const [texto, setTexto]               = useState('');
   const [incluirResumen, setIncluirResumen] = useState(false);
-  const [busqueda, setBusqueda]         = useState(null); // { q, incluirResumen, skip } de la última búsqueda
+  const [lugar, setLugar]               = useState(''); // sucursal donde más compra el socio ('' = todas)
+  const [busqueda, setBusqueda]         = useState(null); // { q, incluirResumen, lugar, skip } de la última búsqueda
   const [rows, setRows]                 = useState([]);
   const [loading, setLoading]           = useState(false);
   const [etiquetas, setEtiquetas]       = useState([]);
   const [verTodas, setVerTodas]         = useState(false);
 
   useEffect(() => {
-    getEtiquetasPreferencias()
+    getEtiquetasPreferencias(lugar)
       .then(res => setEtiquetas(res.data))
       .catch(() => toast.error('No se pudieron cargar las preferencias disponibles.'));
-  }, []);
+  }, [lugar]);
 
   const buscar = async (params) => {
     setBusqueda(params);
@@ -60,8 +61,10 @@ export const SociosPorPreferenciaPage = () => {
 
   const q = texto.trim();
   const puedeBuscar = q.length >= 2 && !loading;
-  const onBuscar = () => puedeBuscar && buscar({ q, incluirResumen, skip: 0 });
-  const onEtiqueta = (etiqueta) => { setTexto(etiqueta); buscar({ q: etiqueta, incluirResumen, skip: 0 }); };
+  const onBuscar = () => puedeBuscar && buscar({ q, incluirResumen, lugar, skip: 0 });
+  const onEtiqueta = (etiqueta) => { setTexto(etiqueta); buscar({ q: etiqueta, incluirResumen, lugar, skip: 0 }); };
+  // Cambiar la sucursal repite la última búsqueda desde la primera página
+  const onLugar = (v) => { setLugar(v); if (busqueda) buscar({ ...busqueda, lugar: v, skip: 0 }); };
   const irAPagina = (skip) => buscar({ ...busqueda, skip });
 
   const visibles = verTodas ? etiquetas : etiquetas.slice(0, ETIQUETAS_VISIBLES);
@@ -96,6 +99,7 @@ export const SociosPorPreferenciaPage = () => {
               <input type="checkbox" checked={incluirResumen} onChange={e => setIncluirResumen(e.target.checked)} />
               Buscar también en el resumen
             </label>
+            <LugarFilter label="Sucursal donde más compra" value={lugar} onChange={onLugar} disabled={loading} />
             <button className="btn btn-primary" style={{ alignSelf: 'flex-end' }} onClick={onBuscar} disabled={!puedeBuscar}>
               <Search size={16} /> Buscar
             </button>
@@ -139,14 +143,14 @@ export const SociosPorPreferenciaPage = () => {
       ) : rows.length === 0 && busqueda.skip === 0 ? (
         <div className="card">
           <div className="card-body" style={{ color: 'var(--gray-500)', fontSize: 14 }}>
-            Ningún socio coincide con “{busqueda.q}”.
+            Ningún socio coincide con “{busqueda.q}”{busqueda.lugar ? ` en ${busqueda.lugar}` : ''}.
           </div>
         </div>
       ) : (
         <div className="card">
           <div className="card-header">
             <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Sparkles size={18} /> “{busqueda.q}”
+              <Sparkles size={18} /> “{busqueda.q}”{busqueda.lugar ? ` · ${busqueda.lugar}` : ''}
             </span>
             <div className="flex gap-2 items-center">
               <span style={{ fontSize: 13, color: 'var(--gray-500)' }}>
@@ -168,6 +172,7 @@ export const SociosPorPreferenciaPage = () => {
                   <th>Teléfono</th>
                   <th>Email</th>
                   <th>Coincidencias</th>
+                  <th>Sucursal</th>
                   <th>Perfil</th>
                   <th />
                 </tr>
@@ -184,6 +189,7 @@ export const SociosPorPreferenciaPage = () => {
                         <div key={i}><span style={{ color: 'var(--gray-500)' }}>{CAMPOS[c.campo] || c.campo}:</span> {c.valor}</div>
                       ))}
                     </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{s.lugar_principal || '—'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{fmtFecha(s.perfil_generado_en)}</td>
                     <td style={{ textAlign: 'right', color: 'var(--primary)', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap' }}>
                       Ver socio →
