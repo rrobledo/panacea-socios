@@ -6,7 +6,7 @@ import { buscarPorDni, buscarPorNombre, registrarVenta, validarCupon, getBenefic
 import { InlineLoader } from '../components/ui';
 import { SocioResumen } from '../components/socio/SocioResumen';
 
-const LUGARES = ['Villa Allende', 'Villa Carlos Paz'];
+const LUGARES = ['Villa Allende', 'Villa Carlos Paz', 'Villa General Belgrano'];
 
 const fmtImporte = (v) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(v || 0);
