@@ -28,6 +28,10 @@ client.interceptors.response.use(
   }
 );
 
+// Incluye `saldo_puntos` (saldo actual de puntos del socio)
+export const getSocio = (id) =>
+  client.get(`/socios/${id}`);
+
 export const buscarPorDni = (dni) =>
   client.get('/socios/', { params: { dni } });
 

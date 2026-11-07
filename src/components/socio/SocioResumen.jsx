@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Coins, ShoppingBag, ChevronRight } from 'lucide-react';
-import { getVentas, getVentaDetail } from '../../services/sociosApi';
+import { getSocio, getVentas, getVentaDetail } from '../../services/sociosApi';
 import { InlineLoader, Modal } from '../ui';
 
 const fmtFecha = (v) => {
@@ -16,42 +16,56 @@ const fmtImporte = (v) => {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(v);
 };
 
-// ── Créditos: total comprado / registrado ─────────────────────────────────
-const CreditosCard = ({ ventas, loading, error, onRetry }) => {
-  const total = ventas.reduce((acc, v) => acc + Number(v.importe || 0), 0);
+// ── Puntos: saldo actual del socio ────────────────────────────────────────
+const fmtPuntos = (v) => new Intl.NumberFormat('es-AR').format(v);
+
+const PuntosCard = ({ socioId, cantidadCompras }) => {
+  const [saldo, setSaldo]     = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(false);
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    getSocio(socioId)
+      .then(res => setSaldo(res.data.saldo_puntos))
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [socioId, version]);
+
+  const retry = () => { setLoading(true); setError(false); setVersion(v => v + 1); };
 
   return (
     <div className="card">
       <div className="card-header">
         <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Coins size={18} /> Créditos
+          <Coins size={18} /> Puntos
         </span>
       </div>
       <div className="card-body">
         {loading ? (
-          <InlineLoader text="Cargando créditos..." />
+          <InlineLoader text="Cargando puntos..." />
         ) : error ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 14, color: 'var(--gray-500)' }}>No se pudieron cargar los créditos.</span>
-            <button className="btn btn-secondary btn-sm" onClick={onRetry}>Reintentar</button>
+            <span style={{ fontSize: 14, color: 'var(--gray-500)' }}>No se pudieron cargar los puntos.</span>
+            <button className="btn btn-secondary btn-sm" onClick={retry}>Reintentar</button>
           </div>
         ) : (
           <>
-            <div style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 4 }}>Total comprado</div>
+            <div style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 4 }}>Puntos disponibles</div>
             <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--primary)', lineHeight: 1.1 }}>
-              {fmtImporte(total)}
+              {saldo == null ? '—' : `${fmtPuntos(saldo)} pts`}
             </div>
-            <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 8 }}>
-              {ventas.length} {ventas.length === 1 ? 'compra registrada' : 'compras registradas'}
-            </div>
+            {cantidadCompras != null && (
+              <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 8 }}>
+                {cantidadCompras} {cantidadCompras === 1 ? 'compra registrada' : 'compras registradas'}
+              </div>
+            )}
           </>
         )}
       </div>
     </div>
   );
 };
-
-
 
 // ── Detalle de una compra ─────────────────────────────────────────────────
 const VentaDetalleModal = ({ venta, onClose }) => {
@@ -182,7 +196,7 @@ const Resumen = ({ socioId }) => {
   const props = { ventas, loading, error, onRetry: retryVentas };
   return (
     <div className="socio-resumen">
-      <CreditosCard {...props} />
+      <PuntosCard socioId={socioId} cantidadCompras={loading || error ? null : ventas.length} />
       <ComprasCard {...props} />
     </div>
   );
