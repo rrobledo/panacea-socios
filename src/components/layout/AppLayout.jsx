@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
-  ShoppingCart, Trophy, Cake, LogOut, Menu, X, ChevronDown, Bell, User,
+  ShoppingCart, Trophy, Cake, LogOut, Menu, X, ChevronDown, ChevronRight, Bell, User,
+  Database, Coins,
 } from 'lucide-react';
 import './layout.css';
 
@@ -10,7 +11,39 @@ const NAV = [
   { label: 'Ventas', icon: ShoppingCart, to: '/' },
   { label: 'Mayores compras', icon: Trophy, to: '/reportes/ranking-compras' },
   { label: 'Cumpleaños', icon: Cake, to: '/reportes/cumpleanios' },
+  {
+    label: 'Maestros', icon: Database,
+    children: [
+      { label: 'Sistema de puntos', icon: Coins, to: '/maestros/puntos' },
+    ],
+  },
 ];
+
+const NavGroup = ({ item, collapsed }) => {
+  const location = useLocation();
+  const childActive = item.children.some(c => location.pathname === c.to);
+  const [open, setOpen] = useState(childActive);
+  // Con el sidebar colapsado no hay lugar para el submenú: se muestran los hijos como íconos
+  if (collapsed) return item.children.map((c, i) => <NavItem key={i} item={c} collapsed />);
+  return (
+    <div className={`nav-group ${open ? 'open' : ''}`}>
+      <button className={`nav-link ${childActive && !open ? 'active' : ''}`} onClick={() => setOpen(o => !o)}>
+        <item.icon size={18} className="nav-icon" />
+        <span className="nav-label">{item.label}</span>
+        <ChevronRight size={14} className="nav-arrow" />
+      </button>
+      {open && (
+        <div className="nav-children">
+          {item.children.map((c, i) => (
+            <Link key={i} to={c.to} className={`nav-link nav-child ${location.pathname === c.to ? 'active' : ''}`}>
+              <span className="nav-label">{c.label}</span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const NavItem = ({ item, collapsed }) => {
   const location = useLocation();
@@ -55,7 +88,9 @@ export const AppLayout = ({ children }) => {
 
         <nav className="sidebar-nav">
           {NAV.map((item, i) => (
-            <NavItem key={i} item={item} collapsed={collapsed} />
+            item.children
+              ? <NavGroup key={i} item={item} collapsed={collapsed} />
+              : <NavItem key={i} item={item} collapsed={collapsed} />
           ))}
         </nav>
 

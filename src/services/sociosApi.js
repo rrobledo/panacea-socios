@@ -55,3 +55,17 @@ export const getRankingCompras = (params) =>
 
 export const getCumpleanios = (desde, hasta) =>
   client.get('/reportes/cumpleanios', { params: { desde, hasta } });
+
+// ── Maestro: sistema de puntos (requiere admin) ───────────────────────────
+// Configuración: { meses_expiracion_puntos, costo_juego_maquina, programa_activo }
+export const getConfiguracionPuntos = () => client.get('/admin/configuracion');
+export const updateConfiguracionPuntos = (data) => client.put('/admin/configuracion', data);
+
+// Reglas de conversión: versionadas por vigencia, no se editan; solo se borran las programadas a futuro.
+export const getReglasPuntos = () => client.get('/admin/reglas-puntos');
+export const crearReglaPuntos = (data) => client.post('/admin/reglas-puntos', data);
+export const eliminarReglaPuntos = (id) => client.delete(`/admin/reglas-puntos/${id}`);
+
+export const getBeneficios = () => client.get('/admin/beneficios');
+export const crearBeneficio = (data) => client.post('/admin/beneficios', data);
+export const actualizarBeneficio = (id, data) => client.put(`/admin/beneficios/${id}`, data);
