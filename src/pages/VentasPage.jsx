@@ -1,12 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, ShoppingCart, AlertCircle, CheckCircle2, User } from 'lucide-react';
+import { Search, ShoppingCart, AlertCircle, CheckCircle2, User, Ticket } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import { buscarPorDni, buscarPorNombre, registrarVenta } from '../services/sociosApi';
+import { buscarPorDni, buscarPorNombre, registrarVenta, validarCupon } from '../services/sociosApi';
 import { InlineLoader } from '../components/ui';
 import { SocioResumen } from '../components/socio/SocioResumen';
 
 const LUGARES = ['Villa Allende', 'Villa Carlos Paz'];
+
+const fmtImporte = (v) =>
+  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(v || 0);
+
+// Mensaje de error de negocio del backend: { detail: { code, message } }
+const errorMessage = (err, fallback) => err?.response?.data?.detail?.message || fallback;
 
 const formatFecha = (f) => {
   if (!f) return '—';
@@ -31,6 +37,13 @@ export const VentasPage = () => {
   const [importe, setImporte]   = useState('');
   const [registering, setRegistering] = useState(false);
 
+  // Cupón (opcional, uno solo por compra). `cuponCheck` = resultado de la validación previa.
+  const [cupon, setCupon]           = useState('');
+  const [cuponCheck, setCuponCheck] = useState(null);
+  const [validando, setValidando]   = useState(false);
+
+  const resetCupon = () => { setCupon(''); setCuponCheck(null); };
+
   useEffect(() => {
     if (!dniParam) { dniRef.current?.focus(); return; }
     buscarPorDni(dniParam)
@@ -51,6 +64,7 @@ export const VentasPage = () => {
     setSelectedSocio(null);
     setLugar('');
     setImporte('');
+    resetCupon();
     setSearchMode('dni');
     setTimeout(() => dniRef.current?.focus(), 50);
   }, [setSearchParams]);
@@ -63,6 +77,7 @@ export const VentasPage = () => {
     setSelectedSocio(null);
     setLugar('');
     setImporte('');
+    resetCupon();
     try {
       const res = searchMode === 'dni'
         ? await buscarPorDni(query)
@@ -81,21 +96,42 @@ export const VentasPage = () => {
     if (e.key === 'Enter' && canSearch) handleSearch();
   };
 
+  const handleValidarCupon = async () => {
+    if (!cupon.trim() || !selectedSocio || !(parseFloat(importe) > 0)) return;
+    setValidando(true);
+    try {
+      const res = await validarCupon(cupon, selectedSocio.id, parseFloat(importe));
+      setCuponCheck(res.data);
+    } catch {
+      setCuponCheck({ valido: false, motivo: 'No se pudo validar el cupón.' });
+    } finally {
+      setValidando(false);
+    }
+  };
+
   const handleRegistrar = async () => {
-    if (!selectedSocio || !lugar || !importe) return;
+    if (!canRegister) return;
     setRegistering(true);
     try {
-      await registrarVenta({
+      const res = await registrarVenta({
         socio_id: selectedSocio.id,
         fecha: new Date().toISOString(),
         lugar,
         importe: parseFloat(importe),
         detalles: [],
+        ...(cupon.trim() ? { cupon_codigo: cupon.trim() } : {}),
       });
-      toast.success('¡Venta registrada exitosamente!');
+      const { descuento, puntos_generados: puntos } = res.data || {};
+      const partes = ['¡Venta registrada!'];
+      if (Number(descuento) > 0) partes.push(`Descuento: ${fmtImporte(descuento)}.`);
+      if (puntos > 0) partes.push(`El socio sumó ${puntos} puntos.`);
+      toast.success(partes.join(' '));
       resetAll();
-    } catch {
-      toast.error('Error al registrar la venta. Intentá de nuevo.');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Error al registrar la venta. Intentá de nuevo.'));
+      if (err?.response?.data?.detail?.code === 'CUPON_INVALIDO') {
+        setCuponCheck({ valido: false, motivo: errorMessage(err, 'Cupón inválido.') });
+      }
     } finally {
       setRegistering(false);
     }
@@ -107,11 +143,15 @@ export const VentasPage = () => {
     setSelectedSocio(null);
     setLugar('');
     setImporte('');
+    resetCupon();
     if (mode === 'dni') setTimeout(() => dniRef.current?.focus(), 50);
   };
 
   const canSearch = searchMode === 'dni' ? dniValue.trim().length > 0 : nameValue.trim().length > 0;
-  const canRegister = selectedSocio && lugar && importe && parseFloat(importe) > 0;
+  // Si se ingresó un cupón, tiene que estar validado contra el importe actual.
+  const cuponOk = !cupon.trim() || cuponCheck?.valido === true;
+  const canRegister = selectedSocio && lugar && importe && parseFloat(importe) > 0 && cuponOk;
+  const neto = cuponCheck?.valido ? parseFloat(importe || 0) - Number(cuponCheck.descuento || 0) : null;
 
   return (
     <div>
@@ -228,7 +268,7 @@ export const VentasPage = () => {
                   return (
                     <tr
                       key={s.id}
-                      onClick={() => { setSelectedSocio(s); setLugar(''); setImporte(''); }}
+                      onClick={() => { setSelectedSocio(s); setLugar(''); setImporte(''); resetCupon(); }}
                       style={{
                         cursor: 'pointer',
                         background: isSelected ? 'var(--primary-light)' : undefined,
@@ -310,10 +350,51 @@ export const VentasPage = () => {
                   min="0"
                   step="0.01"
                   value={importe}
-                  onChange={e => setImporte(e.target.value)}
+                  onChange={e => { setImporte(e.target.value); setCuponCheck(null); }}
                   onKeyDown={e => e.key === 'Enter' && canRegister && handleRegistrar()}
                 />
               </div>
+              <div className="form-group">
+                <label className="form-label">Cupón de descuento (opcional)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Código del cupón"
+                    value={cupon}
+                    maxLength={20}
+                    style={{ textTransform: 'uppercase' }}
+                    onChange={e => { setCupon(e.target.value); setCuponCheck(null); }}
+                    onKeyDown={e => e.key === 'Enter' && handleValidarCupon()}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleValidarCupon}
+                    disabled={!cupon.trim() || !(parseFloat(importe) > 0) || validando}
+                  >
+                    {validando ? <span className="spinner" style={{ width: 16, height: 16 }} /> : <Ticket size={16} />}
+                    Validar
+                  </button>
+                </div>
+                {cupon.trim() && !cuponCheck && (
+                  <span className="form-hint">Ingresá el importe y validá el cupón. Se acepta un solo cupón por compra.</span>
+                )}
+                {cuponCheck && !cuponCheck.valido && (
+                  <span className="form-error">{cuponCheck.motivo || 'Cupón inválido.'}</span>
+                )}
+              </div>
+              {cuponCheck?.valido && (
+                <div className="form-group">
+                  <label className="form-label">Total con descuento</label>
+                  <div className="alert alert-success" style={{ margin: 0 }}>
+                    <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                    <span>
+                      {cuponCheck.porcentaje_descuento}% · −{fmtImporte(cuponCheck.descuento)} → <strong>{fmtImporte(neto)}</strong>
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <div className="card-footer" style={{ justifyContent: 'flex-end', display: 'flex', gap: 12 }}>
