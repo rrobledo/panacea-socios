@@ -9,6 +9,15 @@ import { RankingComprasPage, CumpleaniosPage } from './pages/ReportesPages';
 import { SociosPorPreferenciaPage } from './pages/PreferenciasPage';
 import { MaestroPuntosPage } from './pages/MaestroPuntosPage';
 import { PageLoader } from './components/ui';
+import { CampaniasPage } from './pages/whatsapp/CampaniasPage';
+import { NuevaCampaniaPage } from './pages/whatsapp/NuevaCampaniaPage';
+import { CampaniaDetallePage } from './pages/whatsapp/CampaniaDetallePage';
+import { EnvioMasivoPage } from './pages/whatsapp/EnvioMasivoPage';
+import { PlantillasPage } from './pages/whatsapp/PlantillasPage';
+import { PlantillaEditorPage } from './pages/whatsapp/PlantillaEditorPage';
+import { MensajesWhatsappPage } from './pages/whatsapp/MensajesWhatsappPage';
+import { ReportesWhatsappPage } from './pages/whatsapp/ReportesWhatsappPage';
+import { ConfiguracionWhatsappPage } from './pages/whatsapp/ConfiguracionWhatsappPage';
 import './index.css';
 
 const PrivateRoute = ({ children }) => {
@@ -36,6 +45,15 @@ function App() {
                     <Route path="/reportes/cumpleanios" element={<CumpleaniosPage />} />
                     <Route path="/reportes/preferencias" element={<SociosPorPreferenciaPage />} />
                     <Route path="/maestros/puntos" element={<MaestroPuntosPage />} />
+                    <Route path="/whatsapp/campanias" element={<CampaniasPage />} />
+                    <Route path="/whatsapp/campanias/nueva" element={<NuevaCampaniaPage />} />
+                    <Route path="/whatsapp/campanias/:id" element={<CampaniaDetallePage />} />
+                    <Route path="/whatsapp/envio-masivo" element={<EnvioMasivoPage />} />
+                    <Route path="/whatsapp/plantillas" element={<PlantillasPage />} />
+                    <Route path="/whatsapp/plantillas/:id" element={<PlantillaEditorPage />} />
+                    <Route path="/whatsapp/mensajes" element={<MensajesWhatsappPage />} />
+                    <Route path="/whatsapp/reportes" element={<ReportesWhatsappPage />} />
+                    <Route path="/whatsapp/configuracion" element={<ConfiguracionWhatsappPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </AppLayout>

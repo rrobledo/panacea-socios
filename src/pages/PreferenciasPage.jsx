@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Sparkles, Download } from 'lucide-react';
+import { Search, Sparkles, Download, MessageCircle } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { buscarSociosPorPreferencia, getEtiquetasPreferencias } from '../services/sociosApi';
 import { InlineLoader, LugarFilter } from '../components/ui';
 import { useSessionState } from '../hooks/useSessionState';
 import { useScrollRestore } from '../hooks/useScrollRestore';
+import { useEsAdmin } from '../hooks/useEsAdmin';
 
 const POR_PAGINA = 100;
 const ETIQUETAS_VISIBLES = 30;
@@ -42,6 +43,30 @@ export const SociosPorPreferenciaPage = () => {
   useScrollRestore('reporte-preferencias:scroll', !loading);
   const [etiquetas, setEtiquetas]       = useState([]);
   const [verTodas, setVerTodas]         = useState(false);
+  // Socios desmarcados de la página actual (por defecto están todos marcados)
+  // (se reinicia con cada búsqueda: la selección queda asociada a las filas que la originaron)
+  const [seleccion, setSeleccion]       = useState({ rows: null, desmarcados: new Set() });
+  const desmarcados = seleccion.rows === rows ? seleccion.desmarcados : new Set();
+  const setDesmarcados = (d) => setSeleccion({ rows, desmarcados: d });
+  const esAdmin = useEsAdmin();
+
+  const toggle = (id) => {
+    const n = new Set(desmarcados);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    setDesmarcados(n);
+  };
+  const marcados = rows.filter(r => !desmarcados.has(r.socio_id));
+  const todosMarcados = rows.length > 0 && desmarcados.size === 0;
+
+  // Con menos de la mitad marcada se arma una lista manual; si no, la búsqueda con los desmarcados excluidos
+  const crearCampania = () => {
+    const nombres = Object.fromEntries(rows.map(r => [r.socio_id, r.nombre_apellido]));
+    const audiencia = marcados.length < rows.length / 2
+      ? { tipo: 'MANUAL', socio_ids: marcados.map(r => r.socio_id) }
+      : { tipo: 'PREFERENCIA', q: busqueda.q, incluir_resumen: busqueda.incluirResumen, lugar: busqueda.lugar || '',
+          excluidos: [...desmarcados] };
+    navigate('/whatsapp/campanias/nueva', { state: { audiencia, nombres } });
+  };
 
   useEffect(() => {
     getEtiquetasPreferencias(lugar)
@@ -169,6 +194,12 @@ export const SociosPorPreferenciaPage = () => {
               <span style={{ fontSize: 13, color: 'var(--gray-500)' }}>
                 {rows.length} {rows.length === 1 ? 'socio' : 'socios'}{pagina > 1 || rows.length === POR_PAGINA ? ` · página ${pagina}` : ''}
               </span>
+              {rows.length > 0 && esAdmin && (
+                <button className="btn btn-primary btn-sm" disabled={marcados.length === 0} onClick={crearCampania}
+                  title="Armar una campaña de WhatsApp con los socios marcados">
+                  <MessageCircle size={14} /> Crear campaña de WhatsApp ({marcados.length})
+                </button>
+              )}
               {rows.length > 0 && (
                 <button className="btn btn-ghost btn-sm" onClick={() => exportarCsv(rows, `socios_preferencia_${busqueda.q}_p${pagina}`)}>
                   <Download size={14} /> Exportar CSV
@@ -180,6 +211,12 @@ export const SociosPorPreferenciaPage = () => {
             <table>
               <thead>
                 <tr>
+                  {esAdmin && (
+                    <th style={{ width: 32 }}>
+                      <input type="checkbox" checked={todosMarcados} aria-label="Marcar todos"
+                        onChange={() => setDesmarcados(todosMarcados ? new Set(rows.map(r => r.socio_id)) : new Set())} />
+                    </th>
+                  )}
                   <th>Nombre y Apellido</th>
                   <th>DNI</th>
                   <th>Teléfono</th>
@@ -193,6 +230,11 @@ export const SociosPorPreferenciaPage = () => {
               <tbody>
                 {rows.map(s => (
                   <tr key={s.socio_id} onClick={() => navigate(`/?dni=${encodeURIComponent(s.dni)}`)} style={{ cursor: 'pointer' }}>
+                    {esAdmin && (
+                      <td onClick={e => e.stopPropagation()}>
+                        <input type="checkbox" checked={!desmarcados.has(s.socio_id)} onChange={() => toggle(s.socio_id)} aria-label={`Marcar ${s.nombre_apellido}`} />
+                      </td>
+                    )}
                     <td style={{ fontWeight: 500 }}>{s.nombre_apellido}</td>
                     <td>{s.dni}</td>
                     <td>{s.telefono || '—'}</td>

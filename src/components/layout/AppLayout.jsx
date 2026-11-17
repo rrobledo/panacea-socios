@@ -3,8 +3,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   ShoppingCart, Trophy, Cake, LogOut, Menu, X, ChevronDown, ChevronRight, Bell, User,
-  Database, Coins, Sparkles,
+  Database, Coins, Sparkles, MessageCircle,
 } from 'lucide-react';
+import { useEsAdmin } from '../../hooks/useEsAdmin';
 import './layout.css';
 
 const NAV = [
@@ -18,11 +19,25 @@ const NAV = [
       { label: 'Sistema de puntos', icon: Coins, to: '/maestros/puntos' },
     ],
   },
+  {
+    label: 'WhatsApp', icon: MessageCircle, soloAdmin: true,
+    children: [
+      { label: 'Campañas', icon: MessageCircle, to: '/whatsapp/campanias' },
+      { label: 'Envío masivo', icon: MessageCircle, to: '/whatsapp/envio-masivo' },
+      { label: 'Plantillas', icon: MessageCircle, to: '/whatsapp/plantillas' },
+      { label: 'Mensajes', icon: MessageCircle, to: '/whatsapp/mensajes' },
+      { label: 'Reportes', icon: MessageCircle, to: '/whatsapp/reportes' },
+      { label: 'Configuración', icon: MessageCircle, to: '/whatsapp/configuracion' },
+    ],
+  },
 ];
+
+// Activo también en las pantallas de detalle (p. ej. /whatsapp/campanias/12)
+const esActivo = (pathname, to) => pathname === to || (to !== '/' && pathname.startsWith(`${to}/`));
 
 const NavGroup = ({ item, collapsed }) => {
   const location = useLocation();
-  const childActive = item.children.some(c => location.pathname === c.to);
+  const childActive = item.children.some(c => esActivo(location.pathname, c.to));
   const [open, setOpen] = useState(childActive);
   // Con el sidebar colapsado no hay lugar para el submenú: se muestran los hijos como íconos
   if (collapsed) return item.children.map((c, i) => <NavItem key={i} item={c} collapsed />);
@@ -36,7 +51,7 @@ const NavGroup = ({ item, collapsed }) => {
       {open && (
         <div className="nav-children">
           {item.children.map((c, i) => (
-            <Link key={i} to={c.to} className={`nav-link nav-child ${location.pathname === c.to ? 'active' : ''}`}>
+            <Link key={i} to={c.to} className={`nav-link nav-child ${esActivo(location.pathname, c.to) ? 'active' : ''}`}>
               <span className="nav-label">{c.label}</span>
             </Link>
           ))}
@@ -48,7 +63,7 @@ const NavGroup = ({ item, collapsed }) => {
 
 const NavItem = ({ item, collapsed }) => {
   const location = useLocation();
-  const active = location.pathname === item.to;
+  const active = esActivo(location.pathname, item.to);
   return (
     <Link
       to={item.to}
@@ -73,6 +88,7 @@ const useScrollTopOnNavigate = () => {
 
 export const AppLayout = ({ children }) => {
   const { user, logout } = useAuth();
+  const esAdmin = useEsAdmin();
   const navigate = useNavigate();
   useScrollTopOnNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -99,7 +115,7 @@ export const AppLayout = ({ children }) => {
         </div>
 
         <nav className="sidebar-nav">
-          {NAV.map((item, i) => (
+          {NAV.filter(item => !item.soloAdmin || esAdmin).map((item, i) => (
             item.children
               ? <NavGroup key={i} item={item} collapsed={collapsed} />
               : <NavItem key={i} item={item} collapsed={collapsed} />

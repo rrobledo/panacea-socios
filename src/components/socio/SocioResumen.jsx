@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Coins, ShoppingBag, ChevronRight, Sparkles } from 'lucide-react';
+import { Coins, ShoppingBag, ChevronRight, Sparkles, MessageCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { getMensajesWhatsapp } from '../../services/whatsappApi';
+import { useEsAdmin } from '../../hooks/useEsAdmin';
 import { getSocio, getVentas, getVentaDetail, getPreferenciasSocio } from '../../services/sociosApi';
 import { InlineLoader, Modal } from '../ui';
 
@@ -232,11 +235,71 @@ const ComprasCard = ({ ventas, loading, error, onRetry }) => {
   );
 };
 
-// Perfil destacado (arriba del formulario de venta): puntos y gustos y preferencias.
+// ── WhatsApp: estado del número y últimos mensajes ───────────────────────
+const ESTADO_WA = {
+  DESCONOCIDO: ['Sin verificar', 'gray'], VALIDO: ['WhatsApp válido', 'success'],
+  INVALIDO: ['Número inválido', 'danger'], BAJA: ['Dado de baja de promociones', 'warning'],
+};
+const ESTADO_MSJ = {
+  PENDIENTE: 'Pendiente', ENVIADO: 'Enviado', ENTREGADO: 'Entregado', LEIDO: 'Leído', FALLIDO: 'Fallido', CANCELADO: 'Cancelado',
+};
+
+const WhatsappCard = ({ socioId }) => {
+  const esAdmin = useEsAdmin();
+  const [socio, setSocio]       = useState(null);
+  const [mensajes, setMensajes] = useState(null);
+
+  useEffect(() => {
+    getSocio(socioId).then(res => setSocio(res.data)).catch(() => {});
+  }, [socioId]);
+  useEffect(() => {
+    if (!esAdmin) return;
+    getMensajesWhatsapp({ socio_id: socioId, limit: 5 }).then(res => setMensajes(res.data)).catch(() => {});
+  }, [socioId, esAdmin]);
+
+  if (!socio) return null;
+  const [label, color] = ESTADO_WA[socio.whatsapp_estado] || ESTADO_WA.DESCONOCIDO;
+  // Para quien no es admin, solo se avisa si el número tiene un problema (para corregirlo en el mostrador)
+  if (!esAdmin) {
+    if (!['INVALIDO', 'BAJA'].includes(socio.whatsapp_estado)) return null;
+    return (
+      <div className={`alert alert-${color === 'danger' ? 'danger' : 'warning'}`} style={{ gridColumn: '1 / -1' }}>
+        WhatsApp: {label}{socio.whatsapp_estado === 'INVALIDO' ? ' — pedile al socio que confirme su celular.' : '.'}
+      </div>
+    );
+  }
+  return (
+    <div className="card" style={{ gridColumn: '1 / -1' }}>
+      <div className="card-header">
+        <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <MessageCircle size={18} /> WhatsApp <span className={`badge badge-${color}`}>{label}</span>
+        </span>
+        {mensajes?.total > 0 && <Link to="/whatsapp/mensajes" className="btn btn-ghost btn-sm"
+          onClick={() => { try { sessionStorage.setItem('wa-mensajes:busqueda', JSON.stringify({ q: socio.dni, estado: '', error_codigo: '', desde: '', hasta: '', skip: 0 })); } catch { /* sin storage */ } }}>
+          Ver todos ({mensajes.total})</Link>}
+      </div>
+      <div className="card-body" style={{ fontSize: 13 }}>
+        {socio.whatsapp_estado_motivo && <div style={{ color: 'var(--gray-500)', marginBottom: 8 }}>{socio.whatsapp_estado_motivo}</div>}
+        {!mensajes ? null : mensajes.items.length === 0 ? (
+          <span style={{ color: 'var(--gray-500)' }}>Todavía no recibió mensajes.</span>
+        ) : mensajes.items.map(m => (
+          <div key={m.id} style={{ display: 'flex', gap: 8, padding: '4px 0', borderBottom: '1px solid var(--gray-100)' }}>
+            <span style={{ color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>{fmtFecha(m.enviado_en || m.creado_en)}</span>
+            <span style={{ flex: 1 }}>{m.campania_nombre || 'Prueba'}</span>
+            <span style={{ fontWeight: 500 }}>{ESTADO_MSJ[m.estado] || m.estado}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Perfil destacado (arriba del formulario de venta): puntos, gustos y preferencias, y WhatsApp.
 const Perfil = ({ socioId }) => (
   <div className="socio-resumen" style={{ marginTop: 0, marginBottom: 20 }}>
     <PuntosCard socioId={socioId} />
     <PreferenciasCard socioId={socioId} />
+    <WhatsappCard socioId={socioId} />
   </div>
 );
 

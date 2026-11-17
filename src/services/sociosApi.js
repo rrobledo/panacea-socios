@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const client = axios.create({
+export const client = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_API_URL,
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
@@ -29,6 +29,9 @@ client.interceptors.response.use(
 );
 
 // Incluye `saldo_puntos` (saldo actual de puntos del socio)
+// Perfil propio (incluye `es_admin`)
+export const getMe = () => client.get('/socios/me');
+
 export const getSocio = (id) =>
   client.get(`/socios/${id}`);
 
