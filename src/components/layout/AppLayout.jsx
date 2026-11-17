@@ -20,14 +20,15 @@ const NAV = [
     ],
   },
   {
-    label: 'WhatsApp', icon: MessageCircle, soloAdmin: true,
+    label: 'WhatsApp', icon: MessageCircle,
     children: [
       { label: 'Campañas', icon: MessageCircle, to: '/whatsapp/campanias' },
       { label: 'Envío masivo', icon: MessageCircle, to: '/whatsapp/envio-masivo' },
       { label: 'Plantillas', icon: MessageCircle, to: '/whatsapp/plantillas' },
       { label: 'Mensajes', icon: MessageCircle, to: '/whatsapp/mensajes' },
       { label: 'Reportes', icon: MessageCircle, to: '/whatsapp/reportes' },
-      { label: 'Configuración', icon: MessageCircle, to: '/whatsapp/configuracion' },
+      // Los tokens de Meta solo los maneja un admin
+      { label: 'Configuración', icon: MessageCircle, to: '/whatsapp/configuracion', soloAdmin: true },
     ],
   },
 ];
@@ -115,7 +116,7 @@ export const AppLayout = ({ children }) => {
         </div>
 
         <nav className="sidebar-nav">
-          {NAV.filter(item => !item.soloAdmin || esAdmin).map((item, i) => (
+          {NAV.map(item => (item.children ? { ...item, children: item.children.filter(c => !c.soloAdmin || esAdmin) } : item)).map((item, i) => (
             item.children
               ? <NavGroup key={i} item={item} collapsed={collapsed} />
               : <NavItem key={i} item={item} collapsed={collapsed} />

@@ -57,7 +57,7 @@
 - [x] 6.4 Aplicar las reglas al socio: `delivered`/`read` → `VALIDO` (salvo `BAJA`), `codigos_invalidan` → `INVALIDO`, `131050` → `BAJA`, y los demás códigos no cambian el estado.
 - [x] 6.5 Procesar los mensajes entrantes: vincular por teléfono normalizado (y sus variantes), detectar las palabras de baja normalizadas (`unaccent` o `unicodedata`) → `BAJA`, y guardar `respuesta_texto` en el último mensaje enviado.
 - [x] 6.6 Procesar `message_template_status_update` con el mismo mapeo de estados de plantilla.
-- [x] 6.7 Crear `PUT /whatsapp/socios/{id}/estado` (admin, motivo obligatorio). Al editar el teléfono en el `PUT` y en el alta de socios, recalcular el número normalizado y pasar `INVALIDO` → `DESCONOCIDO`.
+- [x] 6.7 Crear `PUT /whatsapp/socios/{id}/estado` (usuario autenticado, motivo obligatorio). Al editar el teléfono en el `PUT` y en el alta de socios, recalcular el número normalizado y pasar `INVALIDO` → `DESCONOCIDO`.
 - [x] 6.8 Escribir tests: verificación GET, firma inválida, secuencias de estados fuera de orden y duplicadas, invalidación por `131026`, no invalidación por `131049`, baja por "Baja " y cambio de teléfono.
 
 ## 7. Backend: reportes
@@ -73,10 +73,12 @@
 - [x] 8.2 Exponer `es_admin` en `/auth/me`, o en la respuesta de login o callback, para que el frontend oculte las secciones de admin (si no existe ya).
 - [x] 8.3 Documentar en el README: variables nuevas, URL del webhook, suscripciones en Meta (`messages`, `message_template_status_update`), invocación remota con service token y la guía de referencia.
 
+- [x] 8.4 Abrir WhatsApp a cualquier usuario autenticado (salvo `/whatsapp/configuracion`, solo admin), con su test.
+
 ## 9. Frontend: base y navegación
 
 - [x] 9.1 Crear `src/services/whatsappApi.js` con todas las llamadas `/whatsapp/*`, reutilizando el cliente axios con JWT.
-- [x] 9.2 Agregar el grupo "WhatsApp" a `NAV` en `AppLayout.jsx`, con las entradas Campañas, Envío masivo, Plantillas, Mensajes, Reportes y Configuración. Ocultar las de admin según `es_admin`.
+- [x] 9.2 Agregar el grupo "WhatsApp" a `NAV` en `AppLayout.jsx`, con las entradas Campañas, Envío masivo, Plantillas, Mensajes, Reportes y Configuración. Solo Configuración se oculta a quien no es admin (`es_admin`).
 - [x] 9.3 Registrar las rutas `/whatsapp/*` en `App.jsx` y crear la carpeta `src/pages/whatsapp/`.
 - [x] 9.4 Crear los componentes compartidos: `EstadoBadge` (estados de mensaje, campaña, plantilla y socio), `BurbujaWhatsapp` (vista previa con formato `*negrita*` / `_cursiva_`) y `AudienciaResumen`.
 

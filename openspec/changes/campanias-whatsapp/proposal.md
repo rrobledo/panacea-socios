@@ -41,7 +41,7 @@ La guía de referencia (artefacto "WhatsApp Cloud API") define los parámetros d
   - nuevas variables de entorno: `WHATSAPP_ENCRYPTION_KEY` (o la derivada de `SECRET_KEY`);
   - dependencia `cryptography` (ya presente de forma transitiva vía `python-jose[cryptography]`); para Graph API se usa `httpx`, que ya está.
 - **Frontend (`panacea-socios`)**:
-  - nueva sección "WhatsApp" en el menú: Campañas, Plantillas, Mensajes, Reportes y Configuración (las dos últimas solo para admins);
+  - nueva sección "WhatsApp" en el menú: Campañas, Envío masivo, Plantillas, Mensajes, Reportes y Configuración, disponible para cualquier usuario autenticado salvo Configuración (solo admins);
   - acción "Crear campaña con selección" en `PreferenciasPage`;
   - nuevas funciones en `sociosApi.js` y páginas nuevas en `src/pages/whatsapp/`.
 - **Externo**: requiere una WABA configurada según la guía (número real verificado, método de pago, token permanente de usuario del sistema, webhook suscripto a `messages`). Los envíos de marketing tienen costo por mensaje en Meta.

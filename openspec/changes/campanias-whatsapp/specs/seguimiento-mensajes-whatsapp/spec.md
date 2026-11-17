@@ -71,7 +71,7 @@ Un mensaje entrante (`messages`) de un número que coincide con un socio, cuyo t
 - **THEN** se registra la respuesta y su estado no cambia
 
 ### Requirement: Revisión manual del estado de WhatsApp del socio
-`PUT /whatsapp/socios/{id}/estado` (admin) SHALL permitir cambiar `whatsapp_estado` a `DESCONOCIDO`, `VALIDO`, `INVALIDO` o `BAJA`, con un motivo obligatorio. Cuando se edita el teléfono de un socio con estado `INVALIDO`, el estado MUST volver a `DESCONOCIDO`.
+`PUT /whatsapp/socios/{id}/estado` (usuario autenticado) SHALL permitir cambiar `whatsapp_estado` a `DESCONOCIDO`, `VALIDO`, `INVALIDO` o `BAJA`, con un motivo obligatorio. Cuando se edita el teléfono de un socio con estado `INVALIDO`, el estado MUST volver a `DESCONOCIDO`.
 
 #### Scenario: Teléfono corregido
 - **WHEN** se actualiza el teléfono de un socio `INVALIDO`

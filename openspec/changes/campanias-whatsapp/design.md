@@ -152,6 +152,6 @@ Rollback: `activo = false` frena todos los envíos de inmediato. Si hace falta, 
 ## Open Questions
 
 - ¿Cómo se identifica a un admin en el frontend hoy? Hay que confirmar si `/auth/me` o el JWT exponen el rol.
-- ¿El "creador" de campañas y plantillas debe ser solo admin, o también otro rol de staff (por ejemplo, vendedores que solo vean reportes)? Por ahora todo es admin.
+- Resuelto: campañas, plantillas, envío masivo, mensajes y reportes los usa cualquier usuario autenticado (mismo criterio que los demás reportes); solo la configuración de Meta es de admins. Como `/auth/register` es público, un socio registrado también tendría acceso: si se agrega un rol de staff, estas rutas deberían pasar a exigirlo.
 - ¿Tarifas en USD o en la moneda de facturación elegida en Meta? La guía advierte que la moneda no se puede cambiar después.
 - ¿Se necesita en esta etapa una plantilla con imagen (promos con foto del producto)? Quedó fuera del alcance.

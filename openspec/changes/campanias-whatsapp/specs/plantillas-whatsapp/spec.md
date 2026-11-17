@@ -11,7 +11,7 @@
 - pie opcional, de hasta 60 caracteres;
 - botones opcionales: respuesta rápida o URL, hasta 3.
 
-Una plantilla nueva MUST quedar en estado `BORRADOR`. Solo las plantillas en `BORRADOR` o `RECHAZADA` MUST poder editarse. Una plantilla ya aprobada se modifica creando una copia. Requiere un usuario admin.
+Una plantilla nueva MUST quedar en estado `BORRADOR`. Solo las plantillas en `BORRADOR` o `RECHAZADA` MUST poder editarse. Una plantilla ya aprobada se modifica creando una copia. Requiere un usuario autenticado.
 
 #### Scenario: Nombre inválido
 - **WHEN** se crea una plantilla con nombre `Promo Navidad`

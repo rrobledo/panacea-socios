@@ -6,7 +6,6 @@ import { buscarSociosPorPreferencia, getEtiquetasPreferencias } from '../service
 import { InlineLoader, LugarFilter } from '../components/ui';
 import { useSessionState } from '../hooks/useSessionState';
 import { useScrollRestore } from '../hooks/useScrollRestore';
-import { useEsAdmin } from '../hooks/useEsAdmin';
 
 const POR_PAGINA = 100;
 const ETIQUETAS_VISIBLES = 30;
@@ -48,7 +47,6 @@ export const SociosPorPreferenciaPage = () => {
   const [seleccion, setSeleccion]       = useState({ rows: null, desmarcados: new Set() });
   const desmarcados = seleccion.rows === rows ? seleccion.desmarcados : new Set();
   const setDesmarcados = (d) => setSeleccion({ rows, desmarcados: d });
-  const esAdmin = useEsAdmin();
 
   const toggle = (id) => {
     const n = new Set(desmarcados);
@@ -194,7 +192,7 @@ export const SociosPorPreferenciaPage = () => {
               <span style={{ fontSize: 13, color: 'var(--gray-500)' }}>
                 {rows.length} {rows.length === 1 ? 'socio' : 'socios'}{pagina > 1 || rows.length === POR_PAGINA ? ` · página ${pagina}` : ''}
               </span>
-              {rows.length > 0 && esAdmin && (
+              {rows.length > 0 && (
                 <button className="btn btn-primary btn-sm" disabled={marcados.length === 0} onClick={crearCampania}
                   title="Armar una campaña de WhatsApp con los socios marcados">
                   <MessageCircle size={14} /> Crear campaña de WhatsApp ({marcados.length})
@@ -211,12 +209,10 @@ export const SociosPorPreferenciaPage = () => {
             <table>
               <thead>
                 <tr>
-                  {esAdmin && (
-                    <th style={{ width: 32 }}>
-                      <input type="checkbox" checked={todosMarcados} aria-label="Marcar todos"
-                        onChange={() => setDesmarcados(todosMarcados ? new Set(rows.map(r => r.socio_id)) : new Set())} />
-                    </th>
-                  )}
+                  <th style={{ width: 32 }}>
+                    <input type="checkbox" checked={todosMarcados} aria-label="Marcar todos"
+                      onChange={() => setDesmarcados(todosMarcados ? new Set(rows.map(r => r.socio_id)) : new Set())} />
+                  </th>
                   <th>Nombre y Apellido</th>
                   <th>DNI</th>
                   <th>Teléfono</th>
@@ -230,11 +226,9 @@ export const SociosPorPreferenciaPage = () => {
               <tbody>
                 {rows.map(s => (
                   <tr key={s.socio_id} onClick={() => navigate(`/?dni=${encodeURIComponent(s.dni)}`)} style={{ cursor: 'pointer' }}>
-                    {esAdmin && (
-                      <td onClick={e => e.stopPropagation()}>
-                        <input type="checkbox" checked={!desmarcados.has(s.socio_id)} onChange={() => toggle(s.socio_id)} aria-label={`Marcar ${s.nombre_apellido}`} />
-                      </td>
-                    )}
+                    <td onClick={e => e.stopPropagation()}>
+                      <input type="checkbox" checked={!desmarcados.has(s.socio_id)} onChange={() => toggle(s.socio_id)} aria-label={`Marcar ${s.nombre_apellido}`} />
+                    </td>
                     <td style={{ fontWeight: 500 }}>{s.nombre_apellido}</td>
                     <td>{s.dni}</td>
                     <td>{s.telefono || '—'}</td>

@@ -14,7 +14,7 @@ La audiencia MUST ser uno de estos tipos:
 - `CUMPLEANIOS`: rango de días;
 - `MANUAL`: lista de `socio_id`.
 
-Las audiencias `PREFERENCIA` y `CUMPLEANIOS` MUST aceptar además una lista de `socio_id` excluidos a mano. Requiere un usuario admin.
+Las audiencias `PREFERENCIA` y `CUMPLEANIOS` MUST aceptar además una lista de `socio_id` excluidos a mano. Requiere un usuario autenticado (cualquiera, no solo admin).
 
 #### Scenario: Plantilla no aprobada
 - **WHEN** se crea una campaña con una plantilla `PENDIENTE`

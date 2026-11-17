@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Coins, ShoppingBag, ChevronRight, Sparkles, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getMensajesWhatsapp } from '../../services/whatsappApi';
-import { useEsAdmin } from '../../hooks/useEsAdmin';
 import { getSocio, getVentas, getVentaDetail, getPreferenciasSocio } from '../../services/sociosApi';
 import { InlineLoader, Modal } from '../ui';
 
@@ -245,7 +244,6 @@ const ESTADO_MSJ = {
 };
 
 const WhatsappCard = ({ socioId }) => {
-  const esAdmin = useEsAdmin();
   const [socio, setSocio]       = useState(null);
   const [mensajes, setMensajes] = useState(null);
 
@@ -253,21 +251,11 @@ const WhatsappCard = ({ socioId }) => {
     getSocio(socioId).then(res => setSocio(res.data)).catch(() => {});
   }, [socioId]);
   useEffect(() => {
-    if (!esAdmin) return;
     getMensajesWhatsapp({ socio_id: socioId, limit: 5 }).then(res => setMensajes(res.data)).catch(() => {});
-  }, [socioId, esAdmin]);
+  }, [socioId]);
 
   if (!socio) return null;
   const [label, color] = ESTADO_WA[socio.whatsapp_estado] || ESTADO_WA.DESCONOCIDO;
-  // Para quien no es admin, solo se avisa si el número tiene un problema (para corregirlo en el mostrador)
-  if (!esAdmin) {
-    if (!['INVALIDO', 'BAJA'].includes(socio.whatsapp_estado)) return null;
-    return (
-      <div className={`alert alert-${color === 'danger' ? 'danger' : 'warning'}`} style={{ gridColumn: '1 / -1' }}>
-        WhatsApp: {label}{socio.whatsapp_estado === 'INVALIDO' ? ' — pedile al socio que confirme su celular.' : '.'}
-      </div>
-    );
-  }
   return (
     <div className="card" style={{ gridColumn: '1 / -1' }}>
       <div className="card-header">

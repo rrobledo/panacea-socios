@@ -9,7 +9,7 @@
 - las 5 campañas con mejor tasa de lectura;
 - los 5 códigos de error más frecuentes.
 
-Requiere un usuario admin. El frontend MUST mostrarlo con tarjetas de indicadores, el embudo enviado → entregado → leído y un gráfico de serie diaria (Recharts).
+Requiere un usuario autenticado. El frontend MUST mostrarlo con tarjetas de indicadores, el embudo enviado → entregado → leído y un gráfico de serie diaria (Recharts).
 
 #### Scenario: Embudo del mes
 - **WHEN** en el mes se intentaron 1000 mensajes: 950 enviados, 900 entregados, 600 leídos y 50 fallidos
