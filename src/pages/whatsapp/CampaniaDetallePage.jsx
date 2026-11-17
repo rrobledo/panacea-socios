@@ -42,7 +42,7 @@ export const CampaniaDetallePage = () => {
   useEffect(() => { cargar(); }, [cargar]);
   useEffect(() => { cargarMensajes(); }, [cargarMensajes]);
 
-  // Refresco automático mientras está en curso; además empuja el siguiente lote para no depender del cron
+  // Refresco automático mientras está en curso; además empuja el siguiente lote sin esperar la invocación remota
   const enCurso = c?.estado === 'EN_CURSO';
   useEffect(() => {
     if (!enCurso) return;

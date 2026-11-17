@@ -36,7 +36,7 @@ Una tabla `whatsapp_configuracion` de una sola fila (`id = 1`). El `access_token
 ### 2. Cliente de Graph API como servicio inyectable
 `app/services/whatsapp/meta_client.py` usa `httpx` y expone `enviar_plantilla`, `crear_plantilla`, `listar_plantillas`, `info_numero` y `enviar_texto` (solo para pruebas). Lanza `MetaError(codigo, subcodigo, titulo, detalle, http_status)`. Se inyecta con `Depends(get_meta_client)` para reemplazarlo en los tests, igual que `get_anthropic_client`. La versión de Graph API sale de la configuración.
 
-### 3. Envío por lotes con cola en tabla + cron + disparo manual
+### 3. Envío por lotes con cola en tabla + invocación remota + disparo manual
 Las funciones de Vercel tienen tiempo máximo, así que no se puede enviar a miles de socios en una sola request. Al iniciar la campaña se **congela la audiencia** en `whatsapp_mensajes` (`PENDIENTE`), con las variables ya resueltas en `parametros` (JSONB). Después, cada ejecución de `procesar_lote(db, client, limite)`:
 
 1. Selecciona hasta `tamanio_lote` mensajes `PENDIENTE` de campañas `EN_CURSO`, en orden por id, con `FOR UPDATE SKIP LOCKED`.
@@ -45,11 +45,11 @@ Las funciones de Vercel tienen tiempo máximo, así que no se puede enviar a mil
 
 Lo disparan tres cosas:
 - el endpoint de inicio, que procesa el primer lote;
-- `GET /jobs/whatsapp`, desde Vercel Cron;
+- `POST /whatsapp/lotes/procesar`, invocado remotamente por otro sistema con un service token;
 - `POST /whatsapp/campanias/{id}/procesar`, desde el botón del detalle y el auto-refresco.
 
 - *Alternativa descartada*: una cola externa (QStash, SQS) o un worker dedicado. Agrega infraestructura nueva; se puede sumar más adelante sin cambiar el modelo.
-- *Frecuencia del cron*: `*/5 * * * *`. Requiere el plan Pro de Vercel; en Hobby el cron es diario. Ver Open Questions.
+- *Sin cron de Vercel*: la frecuencia la decide el sistema que invoca el endpoint (se llama mientras la respuesta tenga `pendientes > 0`). Las campañas programadas arrancan en la primera invocación posterior a su hora.
 - *Idempotencia de inicio*: `UPDATE whatsapp_campanias SET estado='EN_CURSO' WHERE id=:id AND estado='BORRADOR' RETURNING id`. Si no devuelve fila, la respuesta es 409.
 - *Anti-duplicado*: índice único `(campania_id, socio_id)` en `whatsapp_mensajes`, más deduplicación por teléfono normalizado al congelar la audiencia.
 
@@ -130,7 +130,7 @@ Los formularios usan react-hook-form + zod, las tablas usan `DataGrid` y los gr�
 
 ## Risks / Trade-offs
 
-- [Vercel Hobby solo permite cron diario] → el envío avanza igual con el disparo manual y el auto-refresco del detalle. Se documenta que el plan Pro permite `*/5`. Como alternativa, un cron externo (GitHub Actions o cron-job.org) puede llamar a `/jobs/whatsapp` con el `CRON_SECRET`.
+- [Si el sistema externo deja de invocar el endpoint, los envíos se frenan] → el detalle de la campaña abierto y el botón "Procesar lote" siguen avanzando el envío. Las campañas programadas no arrancan hasta la próxima invocación.
 - [Límites de Meta: tier de mensajería (250, 1k, 10k… destinatarios únicos por 24 h) y calidad del número] → el tamaño de lote es configurable, "Probar conexión" muestra el *quality rating* y los errores `131056`/`130429` se reintentan. La vista previa advierte si los enviables superan el tier informado.
 - [Envío duplicado si la función muere después de que Meta aceptó y antes del commit] → hay commit por mensaje y el riesgo queda acotado a un mensaje por corte. Se acepta.
 - [Costos: el marketing es pago por mensaje] → la vista previa muestra el costo estimado y el envío pide confirmación explícita con el total.
@@ -142,7 +142,7 @@ Los formularios usan react-hook-form + zod, las tablas usan `DataGrid` y los gr�
 ## Migration Plan
 
 1. Backend: crear la migración `0006_whatsapp` con las 5 tablas y las 4 columnas en `socios`, y el backfill de `whatsapp_telefono_normalizado`. El downgrade elimina todo.
-2. Deploy del backend con `WHATSAPP_ENCRYPTION_KEY` definida. El cron `/jobs/whatsapp` se agrega a `vercel.json`.
+2. Deploy del backend con `WHATSAPP_ENCRYPTION_KEY` definida. Definir `SERVICE_TOKENS` y configurar el sistema externo que invoca `POST /whatsapp/lotes/procesar`.
 3. Un admin carga la configuración, hace "Probar conexión" y carga en Meta la URL del webhook y el verify token que muestra la pantalla. Después se suscribe a `messages` y `message_template_status_update`.
 4. Sincronizar plantillas, enviar un mensaje de prueba y verificar que llegan los estados.
 5. Deploy del frontend.
@@ -151,7 +151,6 @@ Rollback: `activo = false` frena todos los envíos de inmediato. Si hace falta, 
 
 ## Open Questions
 
-- ¿El backend está en el plan Pro de Vercel, para tener un cron cada 5 minutos? Si no, ¿usamos un cron externo?
 - ¿Cómo se identifica a un admin en el frontend hoy? Hay que confirmar si `/auth/me` o el JWT exponen el rol.
 - ¿El "creador" de campañas y plantillas debe ser solo admin, o también otro rol de staff (por ejemplo, vendedores que solo vean reportes)? Por ahora todo es admin.
 - ¿Tarifas en USD o en la moneda de facturación elegida en Meta? La guía advierte que la moneda no se puede cambiar después.

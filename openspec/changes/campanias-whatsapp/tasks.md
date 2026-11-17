@@ -44,10 +44,10 @@
   - cierra como `FINALIZADA` las campañas sin pendientes.
 - [x] 5.5 Agregar `POST /{id}/enviar`, `/procesar`, `/pausar`, `/reanudar` y `/cancelar` (pendientes → `CANCELADO`).
 - [x] 5.6 Crear `POST /whatsapp/envios-masivos`: crea e inicia una campaña `MASIVO` con nombre automático.
-- [x] 5.7 Agregar el job `GET /jobs/whatsapp` (`CRON_SECRET`): inicia las `PROGRAMADA` vencidas y procesa un lote. Agregar el cron `*/5 * * * *` en `vercel.json`.
+- [x] 5.7 Ciclo de envío (`ejecutar_ciclo`): inicia las `PROGRAMADA` vencidas y procesa un lote. Sin cron de Vercel: se invoca remotamente (ver 5.9).
 - [x] 5.8 Escribir tests de envío (con el cliente mockeado): doble inicio → 409, lote parcial, reintento por límite de tasa, pausa por token vencido, cancelación y fin de campaña.
 
-- [x] 5.9 Agregar `POST /whatsapp/lotes/procesar` con service token (`SERVICE_TOKENS`, en `Authorization: Bearer` o `X-Service-Token`, comparación en tiempo constante, 503 si no hay tokens y 401 si no coincide). Compartir con el cron la función `ejecutar_ciclo`. Escribir sus tests.
+- [x] 5.9 Agregar `POST /whatsapp/lotes/procesar` con service token (`SERVICE_TOKENS`, en `Authorization: Bearer` o `X-Service-Token`, comparación en tiempo constante, 503 si no hay tokens y 401 si no coincide). Usa la función `ejecutar_ciclo`. Escribir sus tests.
 
 ## 6. Backend: webhook y seguimiento
 
@@ -71,7 +71,7 @@
 
 - [x] 8.1 Registrar los routers en `app/main.py`, con docstrings y tags para `/docs`. Regenerar `openapi.json`.
 - [x] 8.2 Exponer `es_admin` en `/auth/me`, o en la respuesta de login o callback, para que el frontend oculte las secciones de admin (si no existe ya).
-- [x] 8.3 Documentar en el README: variables nuevas, URL del webhook, suscripciones en Meta (`messages`, `message_template_status_update`), cron y la guía de referencia.
+- [x] 8.3 Documentar en el README: variables nuevas, URL del webhook, suscripciones en Meta (`messages`, `message_template_status_update`), invocación remota con service token y la guía de referencia.
 
 ## 9. Frontend: base y navegación
 

@@ -54,7 +54,7 @@ La respuesta MUST incluir los totales por grupo y por motivo, y una página de d
 - **THEN** ve 5 mensajes de ejemplo personalizados, el total de 120 y el costo estimado
 
 ### Requirement: Iniciar el envío por lotes
-`POST /whatsapp/campanias/{id}/enviar` SHALL congelar la audiencia: crea un registro en `whatsapp_mensajes` por destinatario enviable, con las variables ya resueltas y estado `PENDIENTE`. La campaña pasa a `EN_CURSO` y el sistema procesa el primer lote en la misma solicitud. Con `programada_para` en el futuro, la campaña MUST quedar `PROGRAMADA` y el job la inicia a esa hora. Una campaña sin enviables MUST rechazarse con 422 `AUDIENCIA_VACIA`. La operación MUST ser idempotente: si la campaña ya no está en `BORRADOR`, responde 409.
+`POST /whatsapp/campanias/{id}/enviar` SHALL congelar la audiencia: crea un registro en `whatsapp_mensajes` por destinatario enviable, con las variables ya resueltas y estado `PENDIENTE`. La campaña pasa a `EN_CURSO` y el sistema procesa el primer lote en la misma solicitud. Con `programada_para` en el futuro, la campaña MUST quedar `PROGRAMADA` y la primera invocación de `POST /whatsapp/lotes/procesar` posterior a esa hora la inicia. Una campaña sin enviables MUST rechazarse con 422 `AUDIENCIA_VACIA`. La operación MUST ser idempotente: si la campaña ya no está en `BORRADOR`, responde 409.
 
 #### Scenario: Iniciar campaña
 - **WHEN** se inicia una campaña con 300 enviables y lote de 50
@@ -65,7 +65,7 @@ La respuesta MUST incluir los totales por grupo y por motivo, y una página de d
 - **THEN** solo una crea los mensajes y la otra responde 409
 
 ### Requirement: Procesar lotes pendientes
-El job `GET /jobs/whatsapp` (protegido con `CRON_SECRET`) y el endpoint `POST /whatsapp/campanias/{id}/procesar` (admin) SHALL tomar hasta un lote de mensajes `PENDIENTE` de campañas `EN_CURSO` y procesarlo:
+El endpoint `POST /whatsapp/lotes/procesar` (service token, invocado remotamente; no hay cron de Vercel) y el endpoint `POST /whatsapp/campanias/{id}/procesar` (admin) SHALL tomar hasta un lote de mensajes `PENDIENTE` de campañas `EN_CURSO` y procesarlo:
 1. Bloquea los mensajes con `FOR UPDATE SKIP LOCKED` para que dos ejecuciones no envíen el mismo.
 2. Llama a `POST /{phone_number_id}/messages` con la plantilla y los parámetros.
 3. Guarda el `wamid` y pasa el mensaje a `ENVIADO`.
@@ -86,7 +86,7 @@ Los errores de límite de tasa (`130429`, `131056`) y los errores 5xx MUST dejar
 - **THEN** las campañas `EN_CURSO` pasan a `PAUSADA` con motivo "Token de acceso inválido"
 
 ### Requirement: Procesar lotes desde otro sistema con service token
-`POST /whatsapp/lotes/procesar` SHALL ejecutar un ciclo de envío, el mismo del cron: inicia las campañas `PROGRAMADA` cuya hora llegó y envía hasta un lote de mensajes pendientes. La respuesta MUST incluir los enviados, los fallidos, los reintentos, las campañas finalizadas y los `pendientes` que quedan.
+`POST /whatsapp/lotes/procesar` SHALL ejecutar un ciclo de envío: inicia las campañas `PROGRAMADA` cuya hora llegó y envía hasta un lote de mensajes pendientes. La respuesta MUST incluir los enviados, los fallidos, los reintentos, las campañas finalizadas y los `pendientes` que quedan.
 
 El endpoint MUST autenticarse con un service token, no con el JWT de usuario. El token se envía en `Authorization: Bearer <token>` o en `X-Service-Token: <token>`, y se compara en tiempo constante contra los tokens configurados en `SERVICE_TOKENS`, separados por coma para permitir rotarlos. Cada token MUST tener al menos 32 caracteres.
 

@@ -53,7 +53,7 @@ El resumen SHALL incluir la cantidad de mensajes facturables por categoría de p
 - **THEN** el resumen muestra 49,44 USD estimados para marketing
 
 ### Requirement: Avance en vivo de campañas en curso
-La pantalla de detalle de una campaña `EN_CURSO` SHALL refrescar los contadores cada 10 segundos mientras esté abierta. También MUST ofrecer el botón "Procesar siguiente lote", que llama a `POST /whatsapp/campanias/{id}/procesar`, para no depender solo del cron.
+La pantalla de detalle de una campaña `EN_CURSO` SHALL refrescar los contadores cada 10 segundos mientras esté abierta. También MUST ofrecer el botón "Procesar siguiente lote", que llama a `POST /whatsapp/campanias/{id}/procesar`, para no depender solo de la invocación remota.
 
 #### Scenario: Seguimiento en vivo
 - **WHEN** un admin tiene abierto el detalle de una campaña en curso

@@ -18,7 +18,7 @@ La guía de referencia (artefacto "WhatsApp Cloud API") define los parámetros d
 - **Seguimiento de estados**: un webhook de Meta, verificado con firma `X-Hub-Signature-256`, actualiza cada mensaje a enviado, entregado, leído o fallido con su código de error y su categoría de precio. Las respuestas "BAJA" marcan al socio como dado de baja de marketing.
 - **Calidad del número**: cada socio tiene un estado de WhatsApp (`DESCONOCIDO`, `VALIDO`, `INVALIDO`, `BAJA`). Un mensaje entregado lo marca válido. Los errores definitivos de número (p. ej. `131026`) lo marcan inválido y lo excluyen de futuras campañas. Errores como `131049` (Meta no entregó un marketing) no invalidan el número. Un admin puede revisar y restablecer el estado.
 - **Reportes y monitoreo**: tablero de campañas con embudo enviado → entregado → leído → fallido y tasas; detalle de cada campaña con el estado por destinatario y export CSV; historial de mensajes con filtros; reporte de socios con número inválido o dados de baja; y costo estimado por categoría.
-- **Backend** (`panacea-socios-backend`): modelos, migración, servicio cliente de Graph API, endpoints `/whatsapp/*`, webhook público y job de envío por lotes con Vercel Cron.
+- **Backend** (`panacea-socios-backend`): modelos, migración, servicio cliente de Graph API, endpoints `/whatsapp/*`, webhook público y endpoint de envío por lotes invocado remotamente con service token (sin cron de Vercel).
 
 ## Capabilities
 
@@ -37,8 +37,7 @@ La guía de referencia (artefacto "WhatsApp Cloud API") define los parámetros d
 - **Backend (`panacea-socios-backend`)**:
   - nuevas tablas `whatsapp_configuracion`, `whatsapp_plantillas`, `whatsapp_campanias`, `whatsapp_mensajes` y `whatsapp_eventos`;
   - nuevas columnas en `socios`: `whatsapp_estado`, `whatsapp_estado_motivo`, `whatsapp_estado_actualizado_en`, `whatsapp_telefono_normalizado`;
-  - migración `0006`; routers `/whatsapp/configuracion`, `/whatsapp/plantillas`, `/whatsapp/campanias`, `/whatsapp/mensajes`, `/whatsapp/reportes` y `/whatsapp/webhook` (público), más el job `/jobs/whatsapp`;
-  - cron nuevo en `vercel.json`;
+  - migración `0006`; routers `/whatsapp/configuracion`, `/whatsapp/plantillas`, `/whatsapp/campanias`, `/whatsapp/mensajes`, `/whatsapp/reportes` y `/whatsapp/webhook` (público) y `/whatsapp/lotes/procesar` (service token);
   - nuevas variables de entorno: `WHATSAPP_ENCRYPTION_KEY` (o la derivada de `SECRET_KEY`);
   - dependencia `cryptography` (ya presente de forma transitiva vía `python-jose[cryptography]`); para Graph API se usa `httpx`, que ya está.
 - **Frontend (`panacea-socios`)**:
