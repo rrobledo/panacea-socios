@@ -96,6 +96,17 @@ export const audienciaCompleta = (a) => (
 
 export const variablesFijas = (plantilla) => (plantilla?.variables || []).filter(v => v.origen === 'texto_fijo');
 
+// Texto de la plantilla con los valores cargados para la campaña; las variables del socio muestran su ejemplo.
+// Igual que el backend: los saltos de línea y espacios repetidos de un valor quedan como un solo espacio.
+export const textoConValores = (plantilla, valores, en = 'cuerpo') => (
+  (en === 'encabezado' ? plantilla?.encabezado : plantilla?.cuerpo) || ''
+).replace(/\{\{(\d+)\}\}/g, (m, n) => {
+  const v = (plantilla?.variables || []).find(x => (x.en || 'cuerpo') === en && x.n === Number(n));
+  if (!v) return m;
+  const valor = v.origen === 'texto_fijo' ? (valores[`${en}:${v.n}`] || '').trim() || v.texto?.trim() : null;
+  return (valor || v.ejemplo?.trim() || m).replace(/\s+/g, ' ');
+});
+
 export const faltanValores = (plantilla, valores) => variablesFijas(plantilla)
   .filter(v => !v.texto?.trim() && !(valores[`${v.en || 'cuerpo'}:${v.n}`] || '').trim())
   .map(v => `{{${v.n}}}`);

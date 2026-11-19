@@ -281,14 +281,15 @@ export const ValoresFijos = ({ plantilla, valores, onChange }) => {
   const vars = variablesFijas(plantilla);
   if (!vars.length) return null;
   return (
-    <div className="grid grid-2">
+    <div>
       {vars.map(v => {
         const clave = `${v.en || 'cuerpo'}:${v.n}`;
+        const valor = valores[clave] || '';
         return (
           <Field key={clave} label={`Valor de {{${v.n}}}${v.en === 'encabezado' ? ' (encabezado)' : ''}`}
-            hint={v.texto ? `Si lo dejás vacío: “${v.texto}”` : `Ejemplo: ${v.ejemplo}`}>
-            <input className="form-input" value={valores[clave] || ''} maxLength={1000}
-              onChange={e => onChange({ ...valores, [clave]: e.target.value })} />
+            hint={`${valor.length}/1000 · ${v.texto ? `Si lo dejás vacío: “${v.texto}”` : `Ejemplo: ${v.ejemplo}`} · WhatsApp no admite saltos de línea en las variables: se envían como un espacio`}>
+            <textarea className="form-textarea" rows={v.en === 'encabezado' ? 2 : 5} value={valor} maxLength={1000}
+              style={{ resize: 'vertical' }} onChange={e => onChange({ ...valores, [clave]: e.target.value })} />
           </Field>
         );
       })}

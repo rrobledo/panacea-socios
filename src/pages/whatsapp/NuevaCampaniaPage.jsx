@@ -6,7 +6,7 @@ import { getPlantillas, crearCampania, enviarCampania } from '../../services/wha
 import { Field, InlineLoader, Modal } from '../../components/ui';
 import {
   audienciaCompleta, audienciaParaApi, audienciaVacia, describirAudiencia, errorMessage, faltanValores, fmtMonto, fmtNum,
-  variablesFijas,
+  textoConValores, variablesFijas,
 } from './comun';
 import { AudienciaEditor, BurbujaWhatsapp, PreviaAudiencia, SelectorPlantilla, ValoresFijos } from './componentes';
 
@@ -108,10 +108,20 @@ export const NuevaCampaniaPage = () => {
           </div>
           <div style={{ fontSize: 13, fontWeight: 600, margin: '8px 0' }}>Plantilla</div>
           <SelectorPlantilla plantillas={plantillas} value={plantilla} onChange={p => { setPlantilla(p); setValores({}); }} />
-          {plantilla && variablesFijas(plantilla).length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Textos para esta campaña</div>
-              <ValoresFijos plantilla={plantilla} valores={valores} onChange={setValores} />
+          {plantilla && (
+            <div className="grid grid-2" style={{ marginTop: 16, alignItems: 'start' }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Textos para esta campaña</div>
+                {variablesFijas(plantilla).length > 0
+                  ? <ValoresFijos plantilla={plantilla} valores={valores} onChange={setValores} />
+                  : <div style={{ fontSize: 13, color: 'var(--gray-500)' }}>Esta plantilla no tiene textos para completar.</div>}
+              </div>
+              <div style={{ position: 'sticky', top: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Vista previa</div>
+                <BurbujaWhatsapp encabezado={textoConValores(plantilla, valores, 'encabezado')} texto={textoConValores(plantilla, valores)}
+                  pie={plantilla.pie} botones={plantilla.botones} />
+                <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 6 }}>Los datos del socio se muestran con el valor de ejemplo.</div>
+              </div>
             </div>
           )}
         </div></div>
